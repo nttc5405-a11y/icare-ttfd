@@ -77,7 +77,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 /* ── 疲勞滑桿 ── */
 .fatigue-wrap{display:flex;align-items:center;gap:10px;}
 .fatigue-wrap input[type=range]{flex:1;accent-color:var(--accent);}
-.fatigue-num{font-size:15px;font-weight:600;min-width:18px;}
+。fatigue-num{font-size:15px;font-weight:600;min-width:18px;}
 
 /* ── 症狀格 ── */
 .symptom-grid{display:flex;flex-wrap:wrap;gap:8px;}
@@ -223,6 +223,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .subunit-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .unit-selected-hint{font-size:12px;color:var(--muted);margin-top:5px;}
 
+/* ── 密碼 Modal ── */
+.pwd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;
+  display:none;align-items:center;justify-content:center;}
+.pwd-overlay.show{display:flex;}
+.pwd-box{background:var(--surface);border-radius:var(--radius);padding:28px 24px;
+  width:300px;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.pwd-box h3{font-size:17px;font-weight:700;margin-bottom:6px;}
+.pwd-box p{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.pwd-box input{width:100%;padding:10px 12px;border:1px solid var(--border2);
+  border-radius:var(--radius-sm);font-size:15px;background:var(--surface);
+  color:var(--text);margin-bottom:6px;}
+.pwd-box input:focus{outline:none;border-color:var(--accent);}
+.pwd-err{font-size:12px;color:var(--red-text);margin-bottom:10px;display:none;}
+.lock-icon{font-size:11px;opacity:.6;margin-left:3px;}
+
 /* ── RWD ── */
 @media(max-width:540px){
   .form-grid,.ind-grid,.kpi-grid{grid-template-columns:1fr 1fr;}
@@ -247,11 +262,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 <!-- 導覽 -->
 <div class="nav">
   <button class="nav-btn active" onclick="goTab('submit')">📋 勤前填報</button>
-  <button class="nav-btn" onclick="goTab('dashboard')">📊 今日儀表板</button>
-  <button class="nav-btn" onclick="goTab('supervisor')">✅ 主管審核</button>
-  <button class="nav-btn" onclick="goTab('history')">📂 歷史紀錄</button>
-  <button class="nav-btn" onclick="goTab('trend')">📈 趨勢分析</button>
   <button class="nav-btn" onclick="goTab('ref')">📖 判讀參考</button>
+  <button class="nav-btn" onclick="checkAndGoTab('dashboard')">📊 今日儀表板<span class="lock-icon">🔒</span></button>
+  <button class="nav-btn" onclick="checkAndGoTab('supervisor')">✅ 主管審核<span class="lock-icon">🔒</span></button>
+  <button class="nav-btn" onclick="checkAndGoTab('history')">📂 歷史紀錄<span class="lock-icon">🔒</span></button>
+  <button class="nav-btn" onclick="checkAndGoTab('trend')">📈 趨勢分析<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="goTab('settings')">⚙️ 設定</button>
 </div>
 
@@ -518,6 +533,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <p id="settings-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
   </div>
   <div class="card">
+    <div class="card-title">隱私保護密碼</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">管理功能密碼</div>
+        <div class="setting-hint">儀表板、審核、歷史紀錄、趨勢分析的存取密碼（預設：0000）</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input id="cfg-lockpwd" type="password" placeholder="輸入新密碼" style="max-width:150px;">
+        <button class="btn btn-primary" style="font-size:13px;padding:7px 13px;" onclick="saveLockPwd()">更新密碼</button>
+        <button class="btn btn-ghost" style="font-size:13px;padding:7px 13px;"
+          onclick="sessionUnlocked=false;toast('🔒 管理功能已重新鎖定')">重新鎖定</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-title">部署說明</div>
     <ol style="font-size:13px;line-height:2;color:var(--muted);padding-left:16px;">
       <li>開啟 Google Sheets，建立新試算表</li>
@@ -534,6 +564,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 
 </div><!-- /main -->
 
+<!-- 密碼 Modal -->
+<div class="pwd-overlay" id="pwd-modal">
+  <div class="pwd-box">
+    <h3>🔒 隱私保護</h3>
+    <p>此功能含個人健康資料，請輸入密碼存取</p>
+    <input id="pwd-input" type="password" placeholder="請輸入密碼"
+      onkeydown="if(event.key==='Enter')submitPwd()">
+    <div class="pwd-err" id="pwd-error">密碼錯誤，請再試一次</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="submitPwd()">解鎖</button>
+      <button class="btn btn-ghost" onclick="closePwdModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -549,6 +594,67 @@ const UNITS = {
   '成功大隊': ['成功大隊','都蘭','東河','泰源','成功','長濱'],
   '局本部':   ['科技救災','安檢','指揮中心'],
 };
+
+// ── 依燈號的處置選項（參考作業指引）──────────────────────────
+const DISPOSITION_OPTIONS = {
+  green: [
+    '正常出勤',
+    '自主注意：補充水分、注意保暖，加強自主管理',
+    '建議諮詢醫療或衛教建議',
+  ],
+  amber: [
+    '安排靜態休息 15-30 分鐘後複測',
+    '複測後恢復正常出勤，加強自主管理',
+    '彈性調整勤務：值班台',
+    '彈性調整勤務：水源車操作',
+    '彈性調整勤務：消防安全檢查',
+    '彈性調整勤務：訓練演習',
+    '彈性調整勤務：一般公務車駕駛',
+    '建議利用公餘時間就醫追蹤',
+  ],
+  red: [
+    '安排靜態休息 15-30 分鐘後複測，若期間胸痛或意識不清立即送醫',
+    '複測仍紅燈：暫緩派遣，立即協助就醫',
+    '危險徵兆（胸痛/呼吸困難/意識改變）：立即通報，緊急送醫',
+    '複測後彈性調整勤務：後勤支援工作',
+    '複測後彈性調整勤務：行政工作',
+    '複測後彈性調整勤務：待命',
+  ],
+};
+
+function dispositionSelect(id, light) {
+  const opts = DISPOSITION_OPTIONS[light] || DISPOSITION_OPTIONS.green;
+  const optsHtml = opts.map(o =>
+    `<option value="${o}">${o}</option>`
+  ).join('');
+  return `
+    <select id="disp-${id}" onchange="toggleDispOther('${id}')"
+      style="flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--border2);
+      border-radius:var(--radius-sm);background:var(--surface);color:var(--text);min-width:0;">
+      <option value="">選擇處置方式…</option>
+      ${optsHtml}
+      <option value="__other__">其他（自行輸入）</option>
+    </select>
+    <input type="text" id="disp-other-${id}" placeholder="請輸入其他處置說明"
+      style="flex:1;font-size:13px;padding:8px 11px;border:1px solid var(--border2);
+      border-radius:var(--radius-sm);background:var(--surface);color:var(--text);display:none;">`;
+}
+
+function toggleDispOther(id) {
+  const sel = document.getElementById('disp-'+id);
+  const inp = document.getElementById('disp-other-'+id);
+  inp.style.display = sel.value === '__other__' ? '' : 'none';
+}
+
+function getDisposition(id) {
+  const sel = document.getElementById('disp-'+id);
+  if(!sel) return '';
+  if(sel.value === '__other__') {
+    const inp = document.getElementById('disp-other-'+id);
+    return inp ? inp.value.trim() : '';
+  }
+  return sel.value;
+}
 
 // ── 本地設定讀寫 ──────────────────────────────────────────────
 const LS = {
@@ -629,8 +735,53 @@ function initUnitDisplay() {
   document.getElementById('unit-display').textContent = u || '未選擇單位';
 }
 
+// ── 密碼鎖定 ──────────────────────────────────────────────────
+let sessionUnlocked = false;
+let pendingTab = null;
+const LOCKED_TABS = ['dashboard','supervisor','history','trend'];
+
+function getLockPwd() { return LS.get('lockpwd','0000'); }
+
+function checkAndGoTab(id) {
+  if(LOCKED_TABS.includes(id) && !sessionUnlocked) {
+    pendingTab = id;
+    document.getElementById('pwd-modal').classList.add('show');
+    document.getElementById('pwd-input').value = '';
+    document.getElementById('pwd-error').style.display = 'none';
+    setTimeout(()=>document.getElementById('pwd-input').focus(), 80);
+    return;
+  }
+  goTab(id);
+}
+
+function closePwdModal() {
+  document.getElementById('pwd-modal').classList.remove('show');
+  pendingTab = null;
+}
+
+function submitPwd() {
+  const entered = document.getElementById('pwd-input').value;
+  if(entered === getLockPwd()) {
+    sessionUnlocked = true;
+    closePwdModal();
+    if(pendingTab) goTab(pendingTab);
+  } else {
+    document.getElementById('pwd-error').style.display = '';
+    document.getElementById('pwd-input').value = '';
+    document.getElementById('pwd-input').focus();
+  }
+}
+
+function saveLockPwd() {
+  const pwd = document.getElementById('cfg-lockpwd').value;
+  if(!pwd){ toast('請輸入新密碼'); return; }
+  LS.set('lockpwd', pwd);
+  document.getElementById('cfg-lockpwd').value = '';
+  toast('✓ 密碼已更新');
+}
+
 // ── 分頁切換 ──────────────────────────────────────────────────
-const TABS = ['submit','dashboard','supervisor','history','trend','ref','settings'];
+const TABS = ['submit','ref','dashboard','supervisor','history','trend','settings'];
 function goTab(id) {
   TABS.forEach(t => {
     document.getElementById('tab-'+t).style.display = t===id ? '' : 'none';
@@ -844,7 +995,7 @@ async function loadDashboard() {
         </div>
         <div style="text-align:right;min-width:80px;">
           ${BADGE_HTML(r.light)}
-          ${r.signed==='true'?'<div style="font-size:11px;color:var(--muted);margin-top:4px;">✓ '+r.signer+'</div>':''}
+          ${String(r.signed)==='true'?'<div style="font-size:11px;color:var(--muted);margin-top:4px;">✓ '+r.signer+'</div>':''}
         </div>
       </div>`).join('');
   } catch(e) {
@@ -859,7 +1010,7 @@ async function loadSupervisor() {
   try {
     const res  = await apiGet({ action:'getAll' });
     const pending = (res.data||[])
-      .filter(r=>r.signed!=='true')
+      .filter(r=>String(r.signed)!=='true')
       .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
 
     if(!pending.length){
@@ -884,10 +1035,10 @@ async function loadSupervisor() {
         ${r.symptoms&&r.symptoms!=='無'?`<p style="font-size:12px;color:var(--red-text);margin-bottom:6px;">⚠️ 症狀：${r.symptoms}</p>`:''}
         ${r.note?`<p style="font-size:12px;color:var(--muted);margin-bottom:6px;">備註：${r.note}</p>`:''}
         ${r.fatigue>3?`<p style="font-size:12px;color:var(--amber-text);margin-bottom:8px;">⚠️ 疲勞指數 ${r.fatigue}/5，請特別留意</p>`:''}
-        <div class="sign-row">
-          <input type="text" id="signer-${r.id}" placeholder="主管姓名" style="max-width:140px;">
-          <input type="text" id="disp-${r.id}" placeholder="處置說明（可選）" style="flex:1;">
-          <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;" onclick="doSign('${r.id}')">確認簽核</button>
+        <div class="sign-row" style="flex-wrap:wrap;gap:8px;">
+          <input type="text" id="signer-${r.id}" placeholder="主管姓名" style="max-width:130px;">
+          ${dispositionSelect(r.id, r.light)}
+          <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" onclick="doSign('${r.id}')">確認簽核</button>
         </div>
       </div>`).join('');
   } catch(e) {
@@ -897,13 +1048,15 @@ async function loadSupervisor() {
 
 async function doSign(id) {
   const signer = document.getElementById('signer-'+id).value.trim();
-  const disp   = document.getElementById('disp-'+id).value.trim();
+  const disp   = getDisposition(id);
   if(!signer){ toast('請輸入主管姓名'); return; }
   try {
     await apiPost({ action:'sign', id, signer, disposition:disp });
-    document.getElementById('card-'+id).style.opacity='.4';
+    // 立即從畫面移除，不等 reload
+    const card = document.getElementById('card-'+id);
+    if(card) card.style.display = 'none';
     toast('✓ 簽核完成：'+signer);
-    setTimeout(()=>loadSupervisor(), 800);
+    setTimeout(()=>loadSupervisor(), 2500);
   } catch(e) { toast('簽核失敗：'+e.message); }
 }
 
@@ -938,7 +1091,7 @@ async function loadHistory() {
           <td>${r.spo2}%</td>
           <td>${r.temp}℃</td>
           <td>${BADGE_HTML(r.light)}</td>
-          <td style="font-size:12px;">${r.signed==='true'?'✓ '+r.signer:'—'}</td>
+          <td style="font-size:12px;">${String(r.signed)==='true'?'✓ '+r.signer:'—'}</td>
         </tr>`).join('')}</tbody>
       </table></div>`;
   } catch(e) {
