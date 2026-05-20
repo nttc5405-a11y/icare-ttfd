@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iCare 生理健康管理系統</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ── 基礎 ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f5f4f0;--surface:#fff;--border:#e0ddd5;--border2:#c8c5bb;
+  --text:#1a1a18;--muted:#6b6960;--hint:#9e9b93;
+  --green-bg:#eaf3de;--green-text:#27500a;--green-bd:#b2d67a;
+  --amber-bg:#faeeda;--amber-text:#633806;--amber-bd:#f0b959;
+  --red-bg:#fcebeb;--red-text:#791f1f;--red-bd:#f09595;
+  --accent:#1a1a18;
+  --radius:10px;--radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1918;--surface:#252420;--border:#3a3830;--border2:#4a4840;
+    --text:#f0ede6;--muted:#a09d95;--hint:#6b6860;
+    --green-bg:#17300a;--green-text:#c0dd97;--green-bd:#3b6d11;
+    --amber-bg:#2a1e06;--amber-text:#fac775;--amber-bd:#854f0b;
+    --red-bg:#2a1010;--red-text:#f7c1c1;--red-bd:#a32d2d;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Microsoft JhengHei',sans-serif;
+  background:var(--bg);color:var(--text);font-size:15px;min-height:100vh;}
+
+/* ── 頂部 ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;
+  position:sticky;top:0;z-index:100;}
+.topbar-left{display:flex;align-items:center;gap:10px;}
+.logo{font-size:17px;font-weight:700;letter-spacing:-.5px;}
+.logo span{opacity:.4;font-weight:400;}
+.unit-tag{font-size:12px;background:var(--border);color:var(--muted);
+  padding:3px 8px;border-radius:99px;}
+#today-badge{font-size:12px;color:var(--muted);}
+
+/* ── 導覽 ── */
+.nav{display:flex;gap:2px;background:var(--surface);
+  border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;}
+.nav-btn{background:none;border:none;padding:12px 14px;font-size:14px;
+  cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;
+  white-space:nowrap;transition:color .15s;}
+.nav-btn:hover{color:var(--text);}
+.nav-btn.active{color:var(--text);font-weight:600;border-bottom-color:var(--text);}
+
+/* ── 主區域 ── */
+.main{max-width:820px;margin:0 auto;padding:24px 16px;}
+
+/* ── 卡片 ── */
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.card-title{font-size:13px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--muted);margin-bottom:14px;}
+
+/* ── 表單 ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:12px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em;}
+.field input,.field select,.field textarea{
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:9px 11px;font-size:14px;background:var(--surface);color:var(--text);
+  transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--accent);}
+.bp-row{display:flex;align-items:center;gap:6px;}
+.bp-sep{font-size:20px;color:var(--hint);}
+
+/* ── 疲勞滑桿 ── */
+.fatigue-wrap{display:flex;align-items:center;gap:10px;}
+.fatigue-wrap input[type=range]{flex:1;accent-color:var(--accent);}
+.fatigue-num{font-size:15px;font-weight:600;min-width:18px;}
+
+/* ── 症狀格 ── */
+.symptom-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.sym-label{display:flex;align-items:center;gap:5px;font-size:13px;
+  cursor:pointer;padding:6px 10px;border:1px solid var(--border2);
+  border-radius:99px;transition:all .15s;user-select:none;}
+.sym-label:hover{border-color:var(--accent);}
+.sym-label input{accent-color:var(--accent);}
+.sym-label.danger{border-color:var(--red-bd);color:var(--red-text);}
+.sym-label.danger:has(input:checked){background:var(--red-bg);}
+
+/* ── 燈號結果 ── */
+.result-banner{border-radius:var(--radius);padding:16px;margin:16px 0;}
+.result-banner.green{background:var(--green-bg);border:1px solid var(--green-bd);}
+.result-banner.amber{background:var(--amber-bg);border:1px solid var(--amber-bd);}
+.result-banner.red{background:var(--red-bg);border:1px solid var(--red-bd);}
+.result-title{font-size:17px;font-weight:700;margin-bottom:6px;}
+.result-title.green{color:var(--green-text);}
+.result-title.amber{color:var(--amber-text);}
+.result-title.red{color:var(--red-text);}
+.result-desc{font-size:13px;line-height:1.65;}
+.result-desc.green{color:var(--green-text);}
+.result-desc.amber{color:var(--amber-text);}
+.result-desc.red{color:var(--red-text);}
+
+/* ── 指標卡 ── */
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+.ind-card{background:var(--bg);border-radius:var(--radius-sm);
+  padding:10px;text-align:center;border:1px solid var(--border);}
+.ind-val{font-size:15px;font-weight:700;}
+.ind-lab{font-size:11px;color:var(--muted);margin-top:2px;}
+.ind-card.red .ind-val{color:var(--red-text);}
+.ind-card.amber .ind-val{color:var(--amber-text);}
+.ind-card.green .ind-val{color:var(--green-text);}
+
+/* ── 燈號 badge ── */
+.badge{display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;}
+.badge.green{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-bd);}
+.badge.amber{background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-bd);}
+.badge.red{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-bd);}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.green .dot{background:var(--green-text);}
+.amber .dot{background:var(--amber-text);}
+.red .dot{background:var(--red-text);}
+
+/* ── 按鈕 ── */
+.btn{padding:10px 18px;border-radius:var(--radius-sm);font-size:14px;
+  cursor:pointer;font-weight:500;transition:all .15s;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{opacity:.85;}
+.btn-ghost{background:none;color:var(--text);border-color:var(--border2);}
+.btn-ghost:hover{background:var(--bg);}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+
+/* ── 今日儀表板 KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px;text-align:center;}
+.kpi-num{font-size:28px;font-weight:700;line-height:1;}
+.kpi-lab{font-size:12px;color:var(--muted);margin-top:4px;}
+.kpi.red .kpi-num{color:var(--red-text);}
+.kpi.amber .kpi-num{color:var(--amber-text);}
+.kpi.green .kpi-num{color:var(--green-text);}
+
+/* ── 人員清單 ── */
+.person-row{display:flex;align-items:center;gap:10px;padding:12px 0;
+  border-bottom:1px solid var(--border);}
+.person-row:last-child{border-bottom:none;}
+.person-name{font-weight:600;font-size:14px;flex:1;}
+.person-unit{font-size:12px;color:var(--muted);}
+.person-detail{font-size:12px;color:var(--muted);}
+.sign-row{display:flex;gap:8px;align-items:center;margin-top:8px;}
+.sign-row input{flex:1;font-size:13px;}
+
+/* ── 表格 ── */
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{text-align:left;padding:8px 10px;font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+  border-bottom:1px solid var(--border);background:var(--bg);}
+.data-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:var(--bg);}
+
+/* ── 趨勢圖 ── */
+.chart-wrap{position:relative;height:200px;margin-top:8px;}
+
+/* ── 設定面板 ── */
+.setting-row{display:flex;align-items:center;gap:10px;padding:12px 0;
+  border-bottom:1px solid var(--border);}
+.setting-row:last-child{border-bottom:none;}
+.setting-label{font-size:14px;flex:1;}
+.setting-hint{font-size:12px;color:var(--muted);}
+.setting-row input{flex:1;max-width:320px;font-size:13px;}
+
+/* ── 提示訊息 ── */
+.toast{position:fixed;bottom:24px;right:20px;background:var(--accent);color:#fff;
+  padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;
+  box-shadow:0 4px 12px rgba(0,0,0,.2);opacity:0;transform:translateY(8px);
+  transition:all .25s;z-index:999;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.api-status{font-size:12px;padding:3px 9px;border-radius:99px;
+  display:inline-flex;align-items:center;gap:4px;}
+.api-status.ok{background:var(--green-bg);color:var(--green-text);}
+.api-status.err{background:var(--red-bg);color:var(--red-text);}
+.api-status.checking{background:var(--amber-bg);color:var(--amber-text);}
+
+/* ── 危險旗幟 ── */
+.danger-flag{background:var(--red-bg);border:1px solid var(--red-bd);
+  border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;
+  color:var(--red-text);margin-bottom:12px;display:none;}
+
+/* ── 參考表 ── */
+.ref-table{width:100%;border-collapse:collapse;font-size:12px;}
+.ref-table th,.ref-table td{padding:8px 10px;border:1px solid var(--border);
+  vertical-align:middle;}
+.ref-table th{background:var(--bg);font-weight:600;text-align:center;}
+.ref-table td:first-child{text-align:center;}
+.ref-row-green{background:var(--green-bg);}
+.ref-row-amber{background:var(--amber-bg);}
+.ref-row-red{background:var(--red-bg);}
+
+/* ── 空狀態 ── */
+.empty-state{text-align:center;padding:32px;color:var(--hint);font-size:14px;}
+
+/* ── RWD ── */
+@media(max-width:540px){
+  .form-grid,.ind-grid,.kpi-grid{grid-template-columns:1fr 1fr;}
+  .main{padding:16px 12px;}
+}
+</style>
+</head>
+<body>
+
+<!-- 頂部 -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">iCare <span>消防健康管理</span></div>
+    <div class="unit-tag" id="unit-display">未設定單位</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="today-badge"></span>
+    <span id="api-status-badge" class="api-status checking">● 連線中</span>
+  </div>
+</div>
+
+<!-- 導覽 -->
+<div class="nav">
+  <button class="nav-btn active" onclick="goTab('submit')">📋 勤前填報</button>
+  <button class="nav-btn" onclick="goTab('dashboard')">📊 今日儀表板</button>
+  <button class="nav-btn" onclick="goTab('supervisor')">✅ 主管審核</button>
+  <button class="nav-btn" onclick="goTab('history')">📂 歷史紀錄</button>
+  <button class="nav-btn" onclick="goTab('trend')">📈 趨勢分析</button>
+  <button class="nav-btn" onclick="goTab('ref')">📖 判讀參考</button>
+  <button class="nav-btn" onclick="goTab('settings')">⚙️ 設定</button>
+</div>
+
+<div class="main">
+
+<!-- ══════════════════════════════════════════
+     TAB 1：勤前填報
+══════════════════════════════════════════ -->
+<div id="tab-submit">
+  <div class="card">
+    <div class="card-title">基本資料</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>姓名</label>
+        <input id="f-name" type="text" placeholder="填報人姓名">
+      </div>
+      <div class="field">
+        <label>單位</label>
+        <select id="f-unit"><option value="">選擇單位…</option></select>
+      </div>
+      <div class="field full">
+        <label>班別</label>
+        <input id="f-shift" type="text" placeholder="例：甲班、早班 2025/05/20">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">生理數值</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>血壓 (mmHg)</label>
+        <div class="bp-row">
+          <input id="f-sbp" type="number" placeholder="收縮壓" style="width:90px">
+          <span class="bp-sep">/</span>
+          <input id="f-dbp" type="number" placeholder="舒張壓" style="width:90px">
+        </div>
+      </div>
+      <div class="field">
+        <label>心率 (bpm)</label>
+        <input id="f-hr" type="number" placeholder="例：72">
+      </div>
+      <div class="field">
+        <label>血氧 SpO₂ (%)</label>
+        <input id="f-spo2" type="number" placeholder="例：98">
+      </div>
+      <div class="field">
+        <label>體溫 (℃)</label>
+        <input id="f-temp" type="number" step="0.1" placeholder="例：36.5">
+      </div>
+      <div class="field full">
+        <label>疲勞程度（0＝無疲勞，5＝極度疲勞）</label>
+        <div class="fatigue-wrap">
+          <span style="font-size:12px;color:var(--hint)">0</span>
+          <input type="range" min="0" max="5" value="0" id="f-fatigue"
+            oninput="document.getElementById('fval').textContent=this.value">
+          <span style="font-size:12px;color:var(--hint)">5</span>
+          <span class="fatigue-num" id="fval">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">不適症狀</div>
+    <div id="danger-flag" class="danger-flag">
+      ⚠️ <strong>危險徵兆勾選</strong>：無論數值為何，一律判定為🔴紅燈，請立即通報值班主管。
+    </div>
+    <div class="symptom-grid" id="sym-group">
+      <label class="sym-label"><input type="checkbox" value="none"> 無</label>
+      <label class="sym-label danger"><input type="checkbox" id="sym-chest"   value="chest">   胸痛／胸悶 ⚠️</label>
+      <label class="sym-label danger"><input type="checkbox" id="sym-breath"  value="breath">  呼吸困難 ⚠️</label>
+      <label class="sym-label danger"><input type="checkbox" id="sym-consci"  value="conscious"> 意識改變 ⚠️</label>
+      <label class="sym-label"><input type="checkbox" value="dizzy">   頭暈／頭痛</label>
+      <label class="sym-label"><input type="checkbox" value="palp">    心悸</label>
+      <label class="sym-label"><input type="checkbox" value="tired">   異常疲倦</label>
+      <label class="sym-label"><input type="checkbox" value="nausea">  噁心</label>
+    </div>
+    <div class="field" style="margin-top:12px;">
+      <label>備註（可留空）</label>
+      <textarea id="f-note" rows="2"
+        placeholder="例：昨日睡眠不足 4 小時、目前服用高血壓藥等"></textarea>
+    </div>
+  </div>
+
+  <!-- 判定結果 -->
+  <div id="result-area" style="display:none;">
+    <div class="ind-grid" id="ind-row"></div>
+    <div id="result-banner"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="doAssess()">🔍 判定燈號</button>
+    <button class="btn btn-ghost"   onclick="doSubmit()">☁️ 儲存至雲端</button>
+    <button class="btn btn-ghost"   onclick="clearForm()">✕ 清除</button>
+  </div>
+  <p id="submit-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2：今日儀表板
+══════════════════════════════════════════ -->
+<div id="tab-dashboard" style="display:none;">
+  <div class="kpi-grid" id="kpi-row">
+    <div class="kpi"><div class="kpi-num" id="kpi-total">—</div><div class="kpi-lab">今日填報人數</div></div>
+    <div class="kpi red"><div class="kpi-num" id="kpi-red">—</div><div class="kpi-lab">🔴 紅燈</div></div>
+    <div class="kpi amber"><div class="kpi-num" id="kpi-amber">—</div><div class="kpi-lab">🟡 黃燈</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="card-title" style="margin:0;">今日全員狀態</div>
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadDashboard()">↻ 重新整理</button>
+    </div>
+    <div id="dashboard-list"><div class="empty-state">載入中…</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3：主管審核
+══════════════════════════════════════════ -->
+<div id="tab-supervisor" style="display:none;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <p style="font-size:14px;color:var(--muted);">未簽核紀錄（黃燈/紅燈優先顯示）</p>
+    <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadSupervisor()">↻ 重新整理</button>
+  </div>
+  <div id="supervisor-list"><div class="empty-state">載入中…</div></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 4：歷史紀錄
+══════════════════════════════════════════ -->
+<div id="tab-history" style="display:none;">
+  <div class="card" style="margin-bottom:14px;">
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="field">
+        <label>單位篩選</label>
+        <select id="hist-unit"><option value="">全部單位</option></select>
+      </div>
+      <div class="field">
+        <label>燈號篩選</label>
+        <select id="hist-light">
+          <option value="">全部</option>
+          <option value="red">🔴 紅燈</option>
+          <option value="amber">🟡 黃燈</option>
+          <option value="green">🟢 綠燈</option>
+        </select>
+      </div>
+      <div class="field" style="justify-content:flex-end;">
+        <label style="opacity:0;">搜尋</label>
+        <button class="btn btn-primary" onclick="loadHistory()">搜尋</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div id="history-table"><div class="empty-state">點擊「搜尋」載入紀錄</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 5：趨勢分析
+══════════════════════════════════════════ -->
+<div id="tab-trend" style="display:none;">
+  <div class="card">
+    <div class="card-title">燈號分布（近 30 筆）</div>
+    <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">每日異常趨勢（紅＋黃燈次數）</div>
+    <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">各單位異常比較</div>
+    <div class="chart-wrap"><canvas id="chart-unit"></canvas></div>
+  </div>
+  <div style="text-align:center;margin-top:8px;">
+    <button class="btn btn-ghost" onclick="loadTrend()">↻ 重新整理圖表</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 6：判讀參考
+══════════════════════════════════════════ -->
+<div id="tab-ref" style="display:none;">
+  <div class="card">
+    <div class="card-title">iCare 燈號判定標準（指引表 2）</div>
+    <div style="overflow-x:auto;">
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>燈號</th>
+          <th>血壓 (mmHg)</th>
+          <th>心率 (bpm)</th>
+          <th>血氧 (%)</th>
+          <th>體溫 (℃)</th>
+          <th>處置方式</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="ref-row-green">
+          <td><span class="badge green"><span class="dot"></span>綠燈</span></td>
+          <td>收縮 &lt;130 且 舒張 &lt;80<br><small style="color:var(--muted)">自主注意：收縮130–139 或 舒張80–89</small></td>
+          <td>60–100<br><small style="color:var(--muted)">50–59（體能佳者）</small></td>
+          <td>≥ 95</td>
+          <td>耳溫 &lt;37.5<br>額溫 &lt;37.0</td>
+          <td>正常出勤<br><small>輕微異常者加強自主管理</small></td>
+        </tr>
+        <tr class="ref-row-amber">
+          <td><span class="badge amber"><span class="dot"></span>黃燈</span></td>
+          <td>收縮 140–159 或 舒張 90–99</td>
+          <td>101–119 或 &lt;50</td>
+          <td>93–94</td>
+          <td>耳溫 37.5–37.9<br>額溫 37.0–37.4</td>
+          <td>休息複測 15–30 分鐘<br>仍異常→彈性低負荷勤務</td>
+        </tr>
+        <tr class="ref-row-red">
+          <td><span class="badge red"><span class="dot"></span>紅燈</span></td>
+          <td>收縮 ≥160 或 &lt;90<br>舒張 ≥100 或 &lt;60</td>
+          <td>≥ 120</td>
+          <td>≤ 92</td>
+          <td>耳溫 ≥38.0 或 ≤35.5<br>額溫 ≥37.5 或 ≤35.0</td>
+          <td>休息複測 15–30 分鐘<br>仍異常→暫緩派遣、立即就醫</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:12px;">
+      ⚠️ 胸痛、呼吸困難、意識改變等危險徵兆，無論數值為何一律判定為紅燈。<br>
+      睡眠建議 6 小時；低於 4 小時者，本人及值班主管均應特別注意。
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 7：設定
+══════════════════════════════════════════ -->
+<div id="tab-settings" style="display:none;">
+  <div class="card">
+    <div class="card-title">API 連線設定</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">GAS Web App URL</div>
+        <div class="setting-hint">部署後取得的 https://script.google.com/… 網址</div>
+      </div>
+      <input id="cfg-url" type="text" placeholder="https://script.google.com/macros/s/…/exec">
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">TOKEN</div>
+        <div class="setting-hint">GAS 程式碼中 CONFIG.TOKEN 的值</div>
+      </div>
+      <input id="cfg-token" type="text" placeholder="icare_2025_XXXXX">
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">我的單位（預設值）</div>
+        <div class="setting-hint">填報時自動帶入</div>
+      </div>
+      <input id="cfg-unit" type="text" placeholder="例：市區分隊">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveSettings()">儲存設定</button>
+      <button class="btn btn-ghost"   onclick="testConnection()">測試連線</button>
+    </div>
+    <p id="settings-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
+  </div>
+  <div class="card">
+    <div class="card-title">部署說明</div>
+    <ol style="font-size:13px;line-height:2;color:var(--muted);padding-left:16px;">
+      <li>開啟 Google Sheets，建立新試算表</li>
+      <li>上方選單 → 擴充功能 → Apps Script</li>
+      <li>將 <code>icare-gas-backend.js</code> 的內容貼上，儲存</li>
+      <li>修改第 8 行 <code>TOKEN</code> 為自訂密碼</li>
+      <li>右上角「部署」→「新增部署作業」→「網路應用程式」</li>
+      <li>執行身份：<strong>我</strong>；存取對象：<strong>所有人（含匿名）</strong></li>
+      <li>複製部署後的 URL，貼入上方「GAS Web App URL」欄位</li>
+      <li>填入 TOKEN，按「儲存設定」並「測試連線」</li>
+    </ol>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 設定讀寫 ─────────────────────────────────────────────────
+const LS = {
+  get: (k,d='') => localStorage.getItem('icare_'+k) || d,
+  set: (k,v) => localStorage.setItem('icare_'+k, v),
+};
+let GAS_URL   = LS.get('url');
+let GAS_TOKEN = LS.get('token');
+
+function saveSettings() {
+  GAS_URL   = document.getElementById('cfg-url').value.trim();
+  GAS_TOKEN = document.getElementById('cfg-token').value.trim();
+  const unit = document.getElementById('cfg-unit').value.trim();
+  LS.set('url',   GAS_URL);
+  LS.set('token', GAS_TOKEN);
+  LS.set('myunit',unit);
+  showMsg('settings-msg','✓ 設定已儲存');
+  initUnitDisplay();
+}
+
+function loadSettings() {
+  document.getElementById('cfg-url').value   = LS.get('url');
+  document.getElementById('cfg-token').value = LS.get('token');
+  document.getElementById('cfg-unit').value  = LS.get('myunit');
+}
+
+// ── 初始化 ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initUnitDisplay();
+  loadSettings();
+  loadUnitSelects();
+  checkApiStatus();
+  document.getElementById('today-badge').textContent =
+    new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  document.querySelectorAll('#sym-group input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const hasDanger = ['sym-chest','sym-breath','sym-consci'].some(id=>document.getElementById(id).checked);
+      document.getElementById('danger-flag').style.display = hasDanger ? 'block' : 'none';
+    });
+  });
+});
+
+function initUnitDisplay() {
+  const u = LS.get('myunit');
+  document.getElementById('unit-display').textContent = u || '未設定單位';
+  if(u) document.getElementById('f-unit').value = u;
+}
+
+// ── 分頁切換 ──────────────────────────────────────────────────
+const TABS = ['submit','dashboard','supervisor','history','trend','ref','settings'];
+function goTab(id) {
+  TABS.forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===id ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach((b,i) => {
+    b.classList.toggle('active', TABS[i]===id);
+  });
+  if(id==='dashboard')  loadDashboard();
+  if(id==='supervisor') loadSupervisor();
+  if(id==='trend')      loadTrend();
+}
+
+// ── API 呼叫 ──────────────────────────────────────────────────
+async function apiGet(params) {
+  if(!GAS_URL) throw new Error('尚未設定 GAS URL');
+  const q = new URLSearchParams({ token: GAS_TOKEN, ...params });
+  const r = await fetch(`${GAS_URL}?${q}`);
+  const j = await r.json();
+  if(j.status === 'error') throw new Error(j.message);
+  return j;
+}
+
+async function apiPost(body) {
+  if(!GAS_URL) throw new Error('尚未設定 GAS URL');
+  const r = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ token: GAS_TOKEN, ...body }),
+  });
+  const j = await r.json();
+  if(j.status === 'error') throw new Error(j.message);
+  return j;
+}
+
+async function checkApiStatus() {
+  const el = document.getElementById('api-status-badge');
+  if(!GAS_URL) { el.textContent='● 未設定'; el.className='api-status err'; return; }
+  try {
+    await apiGet({ action:'ping' });
+    el.textContent='● 已連線'; el.className='api-status ok';
+  } catch(e) {
+    el.textContent='● 連線失敗'; el.className='api-status err';
+  }
+}
+
+async function testConnection() {
+  GAS_URL   = document.getElementById('cfg-url').value.trim();
+  GAS_TOKEN = document.getElementById('cfg-token').value.trim();
+  try {
+    await apiGet({ action:'ping' });
+    showMsg('settings-msg','✓ 連線成功！');
+    checkApiStatus();
+  } catch(e) {
+    showMsg('settings-msg','✗ 連線失敗：'+e.message);
+  }
+}
+
+// ── 單位清單 ──────────────────────────────────────────────────
+async function loadUnitSelects() {
+  let units = [];
+  try {
+    const res = await apiGet({ action:'getConfig' });
+    units = res.units || [];
+  } catch(e) {
+    units = ['第一大隊','第二大隊','市區分隊','救災救護指揮中心'];
+  }
+  ['f-unit','hist-unit'].forEach(id => {
+    const sel = document.getElementById(id);
+    const first = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    units.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = u;
+      sel.appendChild(opt);
+    });
+  });
+  const myUnit = LS.get('myunit');
+  if(myUnit) document.getElementById('f-unit').value = myUnit;
+}
+
+// ── 燈號判定 ──────────────────────────────────────────────────
+function calcLight(d) {
+  const sbp=+d.sbp, dbp=+d.dbp, hr=+d.hr, spo2=+d.spo2, temp=+d.temp;
+  const syms = String(d.symptoms||'');
+  if(['chest','breath','conscious'].some(s=>syms.includes(s))) return 'red';
+  let lvl = 'green';
+  const up = l => { if(l==='red') lvl='red'; else if(l==='amber'&&lvl!=='red') lvl='amber'; };
+  if(sbp>=160||sbp<90||dbp>=100||dbp<60) up('red');
+  else if(sbp>=140||dbp>=90) up('amber');
+  if(hr>=120) up('red'); else if(hr>=101||hr<50) up('amber');
+  if(spo2<=92) up('red'); else if(spo2<=94) up('amber');
+  if(temp>=38.0||temp<=35.5) up('red'); else if(temp>=37.5) up('amber');
+  return lvl;
+}
+
+function indLevel(type,val) {
+  if(type==='sbp'){ if(val>=160||val<90) return 'red'; if(val>=140) return 'amber'; return 'green'; }
+  if(type==='dbp'){ if(val>=100||val<60) return 'red'; if(val>=90)  return 'amber'; return 'green'; }
+  if(type==='hr') { if(val>=120)         return 'red'; if(val>=101||val<50) return 'amber'; return 'green'; }
+  if(type==='spo2'){ if(val<=92)         return 'red'; if(val<=94)  return 'amber'; return 'green'; }
+  if(type==='temp'){ if(val>=38||val<=35.5) return 'red'; if(val>=37.5) return 'amber'; return 'green'; }
+  return 'green';
+}
+
+const LIGHT_META = {
+  green: { emoji:'🟢', label:'綠燈 — 正常出勤',
+    desc: (sbp) => sbp>=130
+      ? '血壓輕微偏高（自主注意），請補充水分、注意保暖，觀察後續趨勢。維持正常出勤。'
+      : '各項生理指標均於正常範圍，可執行所有勤務任務。' },
+  amber: { emoji:'🟡', label:'黃燈 — 持續觀察',
+    desc: () => '請至休息區靜坐休息 15–30 分鐘後進行複測。若複測仍為黃燈，安排較低負荷勤務（值班台、水源車、消防安全檢查），暫停第一線瞄子手或搜救任務，建議利用公餘時間就醫追蹤。' },
+  red:   { emoji:'🔴', label:'紅燈 — 立即就醫',
+    desc: (_, forced) => forced
+      ? '已勾選危險徵兆（胸痛／呼吸困難／意識改變），無論數值為何均為紅燈，請立即通報值班主管，視情況立即送醫。'
+      : '請至休息區靜坐休息 15–30 分鐘後複測。若仍為紅燈，應暫緩所有勤務派遣，立即協助就醫，依診斷結果再評估低負荷勤務或後勤支援工作。' },
+};
+
+function doAssess() {
+  const sbp=+document.getElementById('f-sbp').value, dbp=+document.getElementById('f-dbp').value;
+  const hr=+document.getElementById('f-hr').value,   spo2=+document.getElementById('f-spo2').value;
+  const temp=+document.getElementById('f-temp').value;
+  if([sbp,dbp,hr,spo2,temp].some(isNaN)||[sbp,dbp,hr,spo2,temp].some(v=>!v)){
+    toast('請填寫所有生理數值再判定'); return;
+  }
+  const syms = getSymptoms();
+  const forced = ['chest','breath','conscious'].some(s=>syms.includes(s));
+  const lvl = forced ? 'red' : calcLight({sbp,dbp,hr,spo2,temp,symptoms:syms});
+  const m = LIGHT_META[lvl];
+
+  document.getElementById('ind-row').innerHTML = [
+    {l:'血壓(收)',t:'sbp',v:sbp,u:''},
+    {l:'心率',t:'hr',v:hr,u:'bpm'},
+    {l:'血氧',t:'spo2',v:spo2,u:'%'},
+    {l:'體溫',t:'temp',v:temp,u:'℃'},
+  ].map(d=>`<div class="ind-card ${forced?'red':indLevel(d.t,d.v)}">
+    <div class="ind-val">${d.v}${d.u}</div>
+    <div class="ind-lab">${d.l}</div></div>`).join('');
+
+  document.getElementById('result-banner').innerHTML =
+    `<div class="result-banner ${lvl}">
+      <div class="result-title ${lvl}">${m.emoji} ${m.label}</div>
+      <div class="result-desc ${lvl}">${m.desc(sbp,forced)}</div>
+    </div>`;
+  document.getElementById('result-area').style.display = '';
+}
+
+function getSymptoms() {
+  return Array.from(document.querySelectorAll('#sym-group input:checked'))
+    .map(c=>c.value).filter(v=>v!=='none').join(',') || '無';
+}
+
+async function doSubmit() {
+  const vals = {
+    unit:     document.getElementById('f-unit').value,
+    name:     document.getElementById('f-name').value,
+    shift:    document.getElementById('f-shift').value,
+    sbp:      document.getElementById('f-sbp').value,
+    dbp:      document.getElementById('f-dbp').value,
+    hr:       document.getElementById('f-hr').value,
+    spo2:     document.getElementById('f-spo2').value,
+    temp:     document.getElementById('f-temp').value,
+    fatigue:  document.getElementById('f-fatigue').value,
+    symptoms: getSymptoms(),
+    note:     document.getElementById('f-note').value,
+  };
+  if(!vals.sbp||!vals.dbp||!vals.hr||!vals.spo2||!vals.temp){
+    toast('請填寫所有生理數值'); return;
+  }
+  showMsg('submit-msg','⏳ 儲存中…');
+  try {
+    const res = await apiPost({ action:'submit', data: vals });
+    const lvl = res.light;
+    showMsg('submit-msg',`✓ 已儲存（${LIGHT_META[lvl].emoji} ${LIGHT_META[lvl].label}，ID: ${res.id}）`);
+    toast('填報成功！');
+  } catch(e) {
+    showMsg('submit-msg','✗ 儲存失敗：'+e.message+'\n（請至「設定」確認 GAS URL 與 TOKEN）');
+  }
+}
+
+function clearForm() {
+  ['f-name','f-sbp','f-dbp','f-hr','f-spo2','f-temp','f-note'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  document.getElementById('f-fatigue').value=0;
+  document.getElementById('fval').textContent='0';
+  document.querySelectorAll('#sym-group input').forEach(c=>c.checked=false);
+  document.getElementById('result-area').style.display='none';
+  document.getElementById('danger-flag').style.display='none';
+  document.getElementById('submit-msg').style.display='none';
+}
+
+// ── 今日儀表板 ────────────────────────────────────────────────
+const BADGE_HTML = lvl =>
+  `<span class="badge ${lvl}"><span class="dot"></span>${{green:'🟢 綠燈',amber:'🟡 黃燈',red:'🔴 紅燈'}[lvl]}</span>`;
+
+async function loadDashboard() {
+  document.getElementById('dashboard-list').innerHTML = '<div class="empty-state">載入中…</div>';
+  try {
+    const res = await apiGet({ action:'getAll', today:'true' });
+    const data = res.data || [];
+    document.getElementById('kpi-total').textContent = data.length;
+    document.getElementById('kpi-red').textContent   = data.filter(r=>r.light==='red').length;
+    document.getElementById('kpi-amber').textContent = data.filter(r=>r.light==='amber').length;
+
+    if(!data.length){
+      document.getElementById('dashboard-list').innerHTML='<div class="empty-state">今日尚無填報紀錄</div>'; return;
+    }
+    // 紅→黃→綠排序
+    const order = {red:0,amber:1,green:2};
+    data.sort((a,b)=>order[a.light]-order[b.light]);
+
+    document.getElementById('dashboard-list').innerHTML = data.map(r=>`
+      <div class="person-row">
+        <div>
+          <div class="person-name">${r.name||'（未填）'}</div>
+          <div class="person-unit">${r.unit||''} · ${r.shift||''}</div>
+          <div class="person-detail">BP ${r.sbp}/${r.dbp} · HR ${r.hr} · SpO₂ ${r.spo2}% · ${r.temp}℃</div>
+        </div>
+        <div style="text-align:right;min-width:80px;">
+          ${BADGE_HTML(r.light)}
+          ${r.signed==='true'?'<div style="font-size:11px;color:var(--muted);margin-top:4px;">✓ '+r.signer+'</div>':''}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('dashboard-list').innerHTML =
+      `<div class="empty-state">載入失敗：${e.message}</div>`;
+  }
+}
+
+// ── 主管審核 ──────────────────────────────────────────────────
+async function loadSupervisor() {
+  document.getElementById('supervisor-list').innerHTML='<div class="empty-state">載入中…</div>';
+  try {
+    const res  = await apiGet({ action:'getAll' });
+    const pending = (res.data||[])
+      .filter(r=>r.signed!=='true')
+      .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
+
+    if(!pending.length){
+      document.getElementById('supervisor-list').innerHTML='<div class="empty-state">目前無待簽核紀錄 🎉</div>'; return;
+    }
+
+    document.getElementById('supervisor-list').innerHTML = pending.map(r=>`
+      <div class="card" id="card-${r.id}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div>
+            <div style="font-size:16px;font-weight:700;">${r.name||'（未填）'}</div>
+            <div style="font-size:12px;color:var(--muted);">${r.unit||''} · ${r.shift||''} · ${r.timestamp||''}</div>
+          </div>
+          ${BADGE_HTML(r.light)}
+        </div>
+        <div class="ind-grid">
+          <div class="ind-card"><div class="ind-val">${r.sbp}/${r.dbp}</div><div class="ind-lab">血壓</div></div>
+          <div class="ind-card"><div class="ind-val">${r.hr}</div><div class="ind-lab">心率</div></div>
+          <div class="ind-card"><div class="ind-val">${r.spo2}%</div><div class="ind-lab">血氧</div></div>
+          <div class="ind-card"><div class="ind-val">${r.temp}℃</div><div class="ind-lab">體溫</div></div>
+        </div>
+        ${r.symptoms&&r.symptoms!=='無'?`<p style="font-size:12px;color:var(--red-text);margin-bottom:6px;">⚠️ 症狀：${r.symptoms}</p>`:''}
+        ${r.note?`<p style="font-size:12px;color:var(--muted);margin-bottom:6px;">備註：${r.note}</p>`:''}
+        ${r.fatigue>3?`<p style="font-size:12px;color:var(--amber-text);margin-bottom:8px;">⚠️ 疲勞指數 ${r.fatigue}/5，請特別留意</p>`:''}
+        <div class="sign-row">
+          <input type="text" id="signer-${r.id}" placeholder="主管姓名" style="max-width:140px;">
+          <input type="text" id="disp-${r.id}" placeholder="處置說明（可選）" style="flex:1;">
+          <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;" onclick="doSign('${r.id}')">確認簽核</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('supervisor-list').innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
+  }
+}
+
+async function doSign(id) {
+  const signer = document.getElementById('signer-'+id).value.trim();
+  const disp   = document.getElementById('disp-'+id).value.trim();
+  if(!signer){ toast('請輸入主管姓名'); return; }
+  try {
+    await apiPost({ action:'sign', id, signer, disposition:disp });
+    document.getElementById('card-'+id).style.opacity='.4';
+    toast('✓ 簽核完成：'+signer);
+    setTimeout(()=>loadSupervisor(), 800);
+  } catch(e) { toast('簽核失敗：'+e.message); }
+}
+
+// ── 歷史紀錄 ──────────────────────────────────────────────────
+async function loadHistory() {
+  document.getElementById('history-table').innerHTML='<div class="empty-state">載入中…</div>';
+  const unit  = document.getElementById('hist-unit').value;
+  const light = document.getElementById('hist-light').value;
+  try {
+    const params = { action:'getAll' };
+    if(unit)  params.unit  = unit;
+    if(light) params.light = light;
+    const res  = await apiGet(params);
+    const data = res.data || [];
+    if(!data.length){
+      document.getElementById('history-table').innerHTML='<div class="empty-state">查無符合紀錄</div>'; return;
+    }
+    document.getElementById('history-table').innerHTML = `
+      <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr>
+          <th>時間</th><th>姓名</th><th>單位</th>
+          <th>血壓</th><th>心率</th><th>血氧</th><th>體溫</th>
+          <th>燈號</th><th>簽核</th>
+        </tr></thead>
+        <tbody>${data.map(r=>`<tr>
+          <td style="font-size:11px;white-space:nowrap;">${r.timestamp}</td>
+          <td style="font-weight:600;">${r.name||'—'}</td>
+          <td style="font-size:12px;">${r.unit||'—'}</td>
+          <td>${r.sbp}/${r.dbp}</td>
+          <td>${r.hr}</td>
+          <td>${r.spo2}%</td>
+          <td>${r.temp}℃</td>
+          <td>${BADGE_HTML(r.light)}</td>
+          <td style="font-size:12px;">${r.signed==='true'?'✓ '+r.signer:'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+  } catch(e) {
+    document.getElementById('history-table').innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
+  }
+}
+
+// ── 趨勢分析 ──────────────────────────────────────────────────
+let chartPie=null, chartTrend=null, chartUnit=null;
+
+async function loadTrend() {
+  try {
+    const res  = await apiGet({ action:'getAll' });
+    const data = res.data || [];
+
+    // 圓餅圖
+    const counts = {green:0,amber:0,red:0};
+    data.forEach(r=>counts[r.light]=(counts[r.light]||0)+1);
+    if(chartPie) chartPie.destroy();
+    chartPie = new Chart(document.getElementById('chart-pie'), {
+      type:'doughnut',
+      data:{ labels:['🟢 綠燈','🟡 黃燈','🔴 紅燈'],
+        datasets:[{ data:[counts.green,counts.amber,counts.red],
+          backgroundColor:['#639922','#BA7517','#A32D2D'],borderWidth:0 }] },
+      options:{ plugins:{ legend:{ position:'bottom',labels:{color:'#888',font:{size:12}} } }, cutout:'55%' }
+    });
+
+    // 趨勢折線圖
+    const byDay={};
+    data.forEach(r=>{
+      const day=(r.timestamp||'').substring(0,10).replace(/\//g,'-');
+      if(!byDay[day]) byDay[day]={green:0,amber:0,red:0};
+      byDay[day][r.light]=(byDay[day][r.light]||0)+1;
+    });
+    const days=Object.keys(byDay).sort().slice(-14);
+    if(chartTrend) chartTrend.destroy();
+    chartTrend = new Chart(document.getElementById('chart-trend'),{
+      type:'bar',
+      data:{ labels:days,
+        datasets:[
+          {label:'🔴 紅燈',data:days.map(d=>byDay[d].red),backgroundColor:'#f09595'},
+          {label:'🟡 黃燈',data:days.map(d=>byDay[d].amber),backgroundColor:'#FAC775'},
+        ]},
+      options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
+        scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
+        responsive:true,maintainAspectRatio:false}
+    });
+
+    // 單位比較
+    const byUnit={};
+    data.forEach(r=>{
+      const u=r.unit||'未知';
+      if(!byUnit[u]) byUnit[u]={green:0,amber:0,red:0};
+      byUnit[u][r.light]=(byUnit[u][r.light]||0)+1;
+    });
+    const units=Object.keys(byUnit);
+    if(chartUnit) chartUnit.destroy();
+    chartUnit = new Chart(document.getElementById('chart-unit'),{
+      type:'bar',
+      data:{ labels:units,
+        datasets:[
+          {label:'🔴 紅燈',data:units.map(u=>byUnit[u].red),backgroundColor:'#f09595'},
+          {label:'🟡 黃燈',data:units.map(u=>byUnit[u].amber),backgroundColor:'#FAC775'},
+          {label:'🟢 綠燈',data:units.map(u=>byUnit[u].green),backgroundColor:'#97C459'},
+        ]},
+      options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
+        scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}},
+          y:{stacked:false}},
+        responsive:true,maintainAspectRatio:false}
+    });
+  } catch(e) { toast('趨勢圖載入失敗：'+e.message); }
+}
+
+// ── 工具 ──────────────────────────────────────────────────────
+function showMsg(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = '';
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
