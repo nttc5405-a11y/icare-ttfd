@@ -31,7 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   background:var(--bg);color:var(--text);font-size:15px;min-height:100vh;}
 
 /* ── 頂部 ── */
-。topbar{background:var(--surface);border-bottom:1px solid var(--border);
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);
   padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;
   position:sticky;top:0;z-index:100;}
 .topbar-left{display:flex;align-items:center;gap:10px;}
@@ -203,6 +203,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 /* ── 空狀態 ── */
 .empty-state{text-align:center;padding:32px;color:var(--hint);font-size:14px;}
 
+/* ── 單位選擇器 ── */
+.unit-picker{display:flex;flex-direction:column;gap:0;}
+.brigade-grid{display:flex;flex-wrap:wrap;gap:7px;}
+.brigade-btn{
+  padding:9px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;
+  font-weight:600;transition:all .15s;font-family:inherit;}
+.brigade-btn:hover{border-color:var(--accent);color:var(--accent);}
+.brigade-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.subunit-grid{display:flex;flex-wrap:wrap;gap:7px;
+  padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);
+  border:1px solid var(--border);}
+.subunit-btn{
+  padding:7px 14px;border:1px solid var(--border2);border-radius:99px;
+  background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;
+  transition:all .15s;font-family:inherit;}
+.subunit-btn:hover{border-color:var(--accent);color:var(--accent);}
+.subunit-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.unit-selected-hint{font-size:12px;color:var(--muted);margin-top:5px;}
+
 /* ── RWD ── */
 @media(max-width:540px){
   .form-grid,.ind-grid,.kpi-grid{grid-template-columns:1fr 1fr;}
@@ -249,12 +269,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
         <input id="f-name" type="text" placeholder="填報人姓名">
       </div>
       <div class="field">
-        <label>單位</label>
-        <select id="f-unit"><option value="">選擇單位…</option></select>
+        <label>日期</label>
+        <input id="f-shift" type="date">
       </div>
       <div class="field full">
-        <label>班別</label>
-        <input id="f-shift" type="text" placeholder="例：甲班、早班 2025/05/20">
+        <label>單位</label>
+        <div class="unit-picker">
+          <div class="brigade-grid" id="brigade-grid">
+            <button type="button" class="brigade-btn" onclick="selectBrigade('台東大隊')">台東大隊</button>
+            <button type="button" class="brigade-btn" onclick="selectBrigade('關山大隊')">關山大隊</button>
+            <button type="button" class="brigade-btn" onclick="selectBrigade('大武大隊')">大武大隊</button>
+            <button type="button" class="brigade-btn" onclick="selectBrigade('成功大隊')">成功大隊</button>
+            <button type="button" class="brigade-btn" onclick="selectBrigade('局本部')">局本部</button>
+          </div>
+          <div class="subunit-grid" id="subunit-grid" style="display:none;margin-top:8px;"></div>
+        </div>
+        <input type="hidden" id="f-unit" value="">
       </div>
     </div>
   </div>
@@ -473,27 +503,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <div class="setting-row">
       <div>
         <div class="setting-label">GAS Web App URL</div>
-        <div class="setting-hint">部署後取得的 https://script.google.com/… 網址</div>
+        <div class="setting-hint" style="word-break:break-all;">已預設：<code style="font-size:11px;">…AKfycbyL8WZ…/exec</code></div>
       </div>
-      <input id="cfg-url" type="text" placeholder="https://script.google.com/macros/s/…/exec">
     </div>
     <div class="setting-row">
       <div>
         <div class="setting-label">TOKEN</div>
-        <div class="setting-hint">GAS 程式碼中 CONFIG.TOKEN 的值</div>
+        <div class="setting-hint">已預設於代碼內</div>
       </div>
-      <input id="cfg-token" type="text" placeholder="icare_2025_XXXXX">
-    </div>
-    <div class="setting-row">
-      <div>
-        <div class="setting-label">我的單位（預設值）</div>
-        <div class="setting-hint">填報時自動帶入</div>
-      </div>
-      <input id="cfg-unit" type="text" placeholder="例：市區分隊">
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="saveSettings()">儲存設定</button>
-      <button class="btn btn-ghost"   onclick="testConnection()">測試連線</button>
+      <button class="btn btn-ghost" onclick="testConnection()">測試連線</button>
     </div>
     <p id="settings-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
   </div>
@@ -517,34 +537,80 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 <div class="toast" id="toast"></div>
 
 <script>
-// ── 設定讀寫 ─────────────────────────────────────────────────
+// ── 硬寫設定（修改這裡即可）──────────────────────────────────
+const GAS_URL   = 'https://script.google.com/macros/s/AKfycbyL8WZ-BEdlliidtlayL_5nlp4wZQ_zudjbyDLhf7RiUkSlV72KOZFD6kzTH4OaP6LFXg/exec';
+const GAS_TOKEN = 'icare_2025_CHANGE_ME';
+
+// ── 單位結構 ──────────────────────────────────────────────────
+const UNITS = {
+  '台東大隊': ['台東大隊','台東','救護','特搜','大豐','知本','卑南','南王','豐田','綠島','蘭嶼'],
+  '關山大隊': ['關山大隊','鹿野','延平','關山','池上','海端'],
+  '大武大隊': ['大武大隊','太麻里','金峰','大溪','大武','達仁'],
+  '成功大隊': ['成功大隊','都蘭','東河','泰源','成功','長濱'],
+  '局本部':   ['科技救災','安檢','指揮中心'],
+};
+
+// ── 本地設定讀寫 ──────────────────────────────────────────────
 const LS = {
   get: (k,d='') => localStorage.getItem('icare_'+k) || d,
   set: (k,v) => localStorage.setItem('icare_'+k, v),
 };
-let GAS_URL   = LS.get('url');
-let GAS_TOKEN = LS.get('token');
 
 function saveSettings() {
-  GAS_URL   = document.getElementById('cfg-url').value.trim();
-  GAS_TOKEN = document.getElementById('cfg-token').value.trim();
-  const unit = document.getElementById('cfg-unit').value.trim();
-  LS.set('url',   GAS_URL);
-  LS.set('token', GAS_TOKEN);
-  LS.set('myunit',unit);
   showMsg('settings-msg','✓ 設定已儲存');
-  initUnitDisplay();
 }
 
 function loadSettings() {
-  document.getElementById('cfg-url').value   = LS.get('url');
-  document.getElementById('cfg-token').value = LS.get('token');
-  document.getElementById('cfg-unit').value  = LS.get('myunit');
+  // URL 與 TOKEN 已硬寫於代碼，無需從 localStorage 讀取
+}
+
+// ── 單位選擇器邏輯 ────────────────────────────────────────────
+function selectBrigade(brigade) {
+  // 標記選中的大隊
+  document.querySelectorAll('.brigade-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === brigade);
+  });
+  // 顯示分隊
+  const grid = document.getElementById('subunit-grid');
+  grid.style.display = '';
+  grid.innerHTML = UNITS[brigade].map(u =>
+    `<button type="button" class="subunit-btn" onclick="selectSubunit('${u}')">${u}</button>`
+  ).join('');
+  // 清除已選分隊
+  document.getElementById('f-unit').value = '';
+  updateUnitDisplay('');
+}
+
+function selectSubunit(unit) {
+  document.querySelectorAll('.subunit-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === unit);
+  });
+  document.getElementById('f-unit').value = unit;
+  LS.set('myunit', unit);
+  updateUnitDisplay(unit);
+}
+
+function updateUnitDisplay(unit) {
+  document.getElementById('unit-display').textContent = unit || '未選擇單位';
 }
 
 // ── 初始化 ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  initUnitDisplay();
+  // 預設今日日期
+  document.getElementById('f-shift').value = new Date().toISOString().split('T')[0];
+  // 還原上次選擇的單位
+  const lastUnit = LS.get('myunit');
+  if (lastUnit) {
+    // 找到所屬大隊並展開
+    for (const [brigade, subs] of Object.entries(UNITS)) {
+      if (subs.includes(lastUnit)) {
+        selectBrigade(brigade);
+        // 短暫延遲確保 DOM 已渲染後再標記分隊
+        setTimeout(() => selectSubunit(lastUnit), 0);
+        break;
+      }
+    }
+  }
   loadSettings();
   loadUnitSelects();
   checkApiStatus();
@@ -560,8 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initUnitDisplay() {
   const u = LS.get('myunit');
-  document.getElementById('unit-display').textContent = u || '未設定單位';
-  if(u) document.getElementById('f-unit').value = u;
+  document.getElementById('unit-display').textContent = u || '未選擇單位';
 }
 
 // ── 分頁切換 ──────────────────────────────────────────────────
@@ -612,8 +677,6 @@ async function checkApiStatus() {
 }
 
 async function testConnection() {
-  GAS_URL   = document.getElementById('cfg-url').value.trim();
-  GAS_TOKEN = document.getElementById('cfg-token').value.trim();
   try {
     await apiGet({ action:'ping' });
     showMsg('settings-msg','✓ 連線成功！');
@@ -623,28 +686,20 @@ async function testConnection() {
   }
 }
 
-// ── 單位清單 ──────────────────────────────────────────────────
-async function loadUnitSelects() {
-  let units = [];
-  try {
-    const res = await apiGet({ action:'getConfig' });
-    units = res.units || [];
-  } catch(e) {
-    units = ['第一大隊','第二大隊','市區分隊','救災救護指揮中心'];
-  }
-  ['f-unit','hist-unit'].forEach(id => {
-    const sel = document.getElementById(id);
-    const first = sel.options[0];
-    sel.innerHTML = '';
-    sel.appendChild(first);
-    units.forEach(u => {
+// ── 單位清單（歷史紀錄篩選用）────────────────────────────────
+function loadUnitSelects() {
+  const sel = document.getElementById('hist-unit');
+  sel.innerHTML = '<option value="">全部單位</option>';
+  Object.entries(UNITS).forEach(([brigade, subs]) => {
+    const grp = document.createElement('optgroup');
+    grp.label = brigade;
+    subs.forEach(u => {
       const opt = document.createElement('option');
       opt.value = opt.textContent = u;
-      sel.appendChild(opt);
+      grp.appendChild(opt);
     });
+    sel.appendChild(grp);
   });
-  const myUnit = LS.get('myunit');
-  if(myUnit) document.getElementById('f-unit').value = myUnit;
 }
 
 // ── 燈號判定 ──────────────────────────────────────────────────
@@ -750,6 +805,8 @@ function clearForm() {
   ['f-name','f-sbp','f-dbp','f-hr','f-spo2','f-temp','f-note'].forEach(id=>{
     document.getElementById(id).value='';
   });
+  // 重設日期為今天
+  document.getElementById('f-shift').value = new Date().toISOString().split('T')[0];
   document.getElementById('f-fatigue').value=0;
   document.getElementById('fval').textContent='0';
   document.querySelectorAll('#sym-group input').forEach(c=>c.checked=false);
