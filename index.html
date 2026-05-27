@@ -37,8 +37,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .topbar-left{display:flex;align-items:center;gap:10px;}
 .logo{font-size:17px;font-weight:700;letter-spacing:-.5px;}
 .logo span{opacity:.4;font-weight:400;}
-.unit-tag{font-size:12px;background:var(--border);color:var(--muted);
-  padding:3px 8px;border-radius:99px;}
+.unit-tag{font-size:12px;background:var(--border);color:var(--muted);padding:3px 8px;border-radius:99px;}
 #today-badge{font-size:12px;color:var(--muted);}
 
 /* ── 導覽 ── */
@@ -51,7 +50,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .nav-btn.active{color:var(--text);font-weight:600;border-bottom-color:var(--text);}
 
 /* ── 主區域 ── */
-.main{max-width:820px;margin:0 auto;padding:24px 16px;}
+.main{max-width:860px;margin:0 auto;padding:24px 16px;}
 
 /* ── 卡片 ── */
 .card{background:var(--surface);border:1px solid var(--border);
@@ -63,14 +62,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .field{display:flex;flex-direction:column;gap:5px;}
 .field.full{grid-column:1/-1;}
-.field label{font-size:12px;font-weight:600;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.05em;}
+.field label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
 .field input,.field select,.field textarea{
   border:1px solid var(--border2);border-radius:var(--radius-sm);
-  padding:9px 11px;font-size:14px;background:var(--surface);color:var(--text);
-  transition:border-color .15s;}
-.field input:focus,.field select:focus,.field textarea:focus{
-  outline:none;border-color:var(--accent);}
+  padding:9px 11px;font-size:14px;background:var(--surface);color:var(--text);transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);}
 .bp-row{display:flex;align-items:center;gap:6px;}
 .bp-sep{font-size:20px;color:var(--hint);}
 
@@ -105,8 +101,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 
 /* ── 指標卡 ── */
 .ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
-.ind-card{background:var(--bg);border-radius:var(--radius-sm);
-  padding:10px;text-align:center;border:1px solid var(--border);}
+.ind-card{background:var(--bg);border-radius:var(--radius-sm);padding:10px;text-align:center;border:1px solid var(--border);}
 .ind-val{font-size:15px;font-weight:700;}
 .ind-lab{font-size:11px;color:var(--muted);margin-top:2px;}
 .ind-card.red .ind-val{color:var(--red-text);}
@@ -114,8 +109,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .ind-card.green .ind-val{color:var(--green-text);}
 
 /* ── 燈號 badge ── */
-.badge{display:inline-flex;align-items:center;gap:5px;
-  padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;}
 .badge.green{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-bd);}
 .badge.amber{background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-bd);}
 .badge.red{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-bd);}
@@ -133,19 +127,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .btn-ghost:hover{background:var(--bg);}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
 
-/* ── 今日儀表板 KPI ── */
-.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
-.kpi{background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius);padding:14px;text-align:center;}
-.kpi-num{font-size:28px;font-weight:700;line-height:1;}
-.kpi-lab{font-size:12px;color:var(--muted);margin-top:4px;}
-.kpi.red .kpi-num{color:var(--red-text);}
-.kpi.amber .kpi-num{color:var(--amber-text);}
-.kpi.green .kpi-num{color:var(--green-text);}
-
 /* ── 人員清單 ── */
-.person-row{display:flex;align-items:center;gap:10px;padding:12px 0;
-  border-bottom:1px solid var(--border);}
+.person-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);}
 .person-row:last-child{border-bottom:none;}
 .person-name{font-weight:600;font-size:14px;flex:1;}
 .person-unit{font-size:12px;color:var(--muted);}
@@ -166,8 +149,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .chart-wrap{position:relative;height:200px;margin-top:8px;}
 
 /* ── 設定面板 ── */
-.setting-row{display:flex;align-items:center;gap:10px;padding:12px 0;
-  border-bottom:1px solid var(--border);}
+.setting-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);}
 .setting-row:last-child{border-bottom:none;}
 .setting-label{font-size:14px;flex:1;}
 .setting-hint{font-size:12px;color:var(--muted);}
@@ -179,8 +161,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   box-shadow:0 4px 12px rgba(0,0,0,.2);opacity:0;transform:translateY(8px);
   transition:all .25s;z-index:999;pointer-events:none;}
 .toast.show{opacity:1;transform:translateY(0);}
-.api-status{font-size:12px;padding:3px 9px;border-radius:99px;
-  display:inline-flex;align-items:center;gap:4px;}
+.api-status{font-size:12px;padding:3px 9px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;}
 .api-status.ok{background:var(--green-bg);color:var(--green-text);}
 .api-status.err{background:var(--red-bg);color:var(--red-text);}
 .api-status.checking{background:var(--amber-bg);color:var(--amber-text);}
@@ -192,8 +173,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 
 /* ── 參考表 ── */
 .ref-table{width:100%;border-collapse:collapse;font-size:12px;}
-.ref-table th,.ref-table td{padding:8px 10px;border:1px solid var(--border);
-  vertical-align:middle;}
+.ref-table th,.ref-table td{padding:8px 10px;border:1px solid var(--border);vertical-align:middle;}
 .ref-table th{background:var(--bg);font-weight:600;text-align:center;}
 .ref-table td:first-child{text-align:center;}
 .ref-row-green{background:var(--green-bg);}
@@ -206,22 +186,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 /* ── 單位選擇器 ── */
 .unit-picker{display:flex;flex-direction:column;gap:0;}
 .brigade-grid{display:flex;flex-wrap:wrap;gap:7px;}
-.brigade-btn{
-  padding:9px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;
-  font-weight:600;transition:all .15s;font-family:inherit;}
+.brigade-btn{padding:9px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;font-family:inherit;}
 .brigade-btn:hover{border-color:var(--accent);color:var(--accent);}
 .brigade-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.subunit-grid{display:flex;flex-wrap:wrap;gap:7px;
-  padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);
-  border:1px solid var(--border);}
-.subunit-btn{
-  padding:7px 14px;border:1px solid var(--border2);border-radius:99px;
-  background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;
-  transition:all .15s;font-family:inherit;}
+.subunit-grid{display:flex;flex-wrap:wrap;gap:7px;padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);}
+.subunit-btn{padding:7px 14px;border:1px solid var(--border2);border-radius:99px;
+  background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit;}
 .subunit-btn:hover{border-color:var(--accent);color:var(--accent);}
 .subunit-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.unit-selected-hint{font-size:12px;color:var(--muted);margin-top:5px;}
 
 /* ── Modal 通用 ── */
 .pwd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;
@@ -231,46 +204,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   width:320px;box-shadow:0 8px 32px rgba(0,0,0,.25);}
 .pwd-box h3{font-size:17px;font-weight:700;margin-bottom:6px;}
 .pwd-box p{font-size:13px;color:var(--muted);margin-bottom:16px;}
-.pwd-box input{width:100%;padding:10px 12px;border:1px solid var(--border2);
-  border-radius:var(--radius-sm);font-size:15px;background:var(--surface);
-  color:var(--text);margin-bottom:6px;}
-.pwd-box input:focus{outline:none;border-color:var(--accent);}
-.pwd-box select{width:100%;padding:10px 12px;border:1px solid var(--border2);
-  border-radius:var(--radius-sm);font-size:14px;background:var(--surface);
-  color:var(--text);margin-bottom:10px;}
-.pwd-box select:focus{outline:none;border-color:var(--accent);}
+.pwd-box input,.pwd-box select{width:100%;padding:10px 12px;border:1px solid var(--border2);
+  border-radius:var(--radius-sm);font-size:14px;background:var(--surface);color:var(--text);margin-bottom:8px;}
+.pwd-box input:focus,.pwd-box select:focus{outline:none;border-color:var(--accent);}
 .pwd-err{font-size:12px;color:var(--red-text);margin-bottom:10px;display:none;}
 .lock-icon{font-size:11px;opacity:.6;margin-left:3px;}
 
-/* ── 使用者資訊（頂部列）── */
+/* ── 使用者資訊 ── */
 .user-badge{font-size:12px;background:var(--green-bg);color:var(--green-text);
   padding:3px 9px;border-radius:99px;border:1px solid var(--green-bd);display:none;}
 .logout-btn{font-size:12px;padding:4px 10px;border-radius:99px;background:none;
-  border:1px solid var(--border2);color:var(--muted);cursor:pointer;
-  font-family:inherit;display:none;transition:background .15s;}
+  border:1px solid var(--border2);color:var(--muted);cursor:pointer;font-family:inherit;display:none;}
 .logout-btn:hover{background:var(--bg);}
 
-/* ── 帳號管理表格 ── */
+/* ── 帳號管理 ── */
 .acc-section{margin-bottom:8px;}
 .acc-brigade-header{font-size:12px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--muted);padding:10px 0 6px;
-  border-bottom:1px solid var(--border);margin-bottom:8px;}
-.acc-row{display:flex;align-items:center;gap:10px;padding:8px 0;
-  border-bottom:1px dashed var(--border);}
+  letter-spacing:.06em;color:var(--muted);padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;}
+.acc-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border);}
 .acc-row:last-child{border-bottom:none;}
 .acc-name{font-size:13px;flex:1;}
 .acc-role-tag{font-size:11px;padding:2px 8px;border-radius:99px;flex-shrink:0;}
 .acc-role-tag.brigade{background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-bd);}
 .acc-role-tag.subunit{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-bd);}
-.acc-pwd-input{padding:7px 10px;border:1px solid var(--border2);
-  border-radius:var(--radius-sm);font-size:13px;background:var(--surface);
-  color:var(--text);width:130px;}
+.acc-pwd-input{padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+  font-size:13px;background:var(--surface);color:var(--text);width:130px;}
 .acc-pwd-input:focus{outline:none;border-color:var(--accent);}
 
+/* ── 批次簽核 ── */
+.batch-card{background:var(--amber-bg);border:1px solid var(--amber-bd);
+  border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.batch-card .card-title{color:var(--amber-text);}
+.batch-check{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0;margin-top:3px;}
+.sup-card-inner{flex:1;min-width:0;}
+
 /* ── RWD ── */
-@media(max-width:540px){
-  .form-grid,.ind-grid,.kpi-grid{grid-template-columns:1fr 1fr;}
+@media(max-width:600px){
+  .form-grid,.ind-grid{grid-template-columns:1fr 1fr;}
   .main{padding:16px 12px;}
+  .hist-filter-grid{grid-template-columns:1fr 1fr !important;}
 }
 </style>
 </head>
@@ -294,7 +266,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 <div class="nav">
   <button class="nav-btn active" onclick="goTab('submit')">📋 勤前填報</button>
   <button class="nav-btn" onclick="goTab('ref')">📖 判讀參考</button>
-  <button class="nav-btn" onclick="checkAndGoTab('dashboard')">📊 今日儀表板<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoTab('supervisor')">✅ 主管審核<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoTab('history')">📂 歷史紀錄<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoTab('trend')">📈 趨勢分析<span class="lock-icon">🔒</span></button>
@@ -378,22 +349,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     </div>
     <div class="symptom-grid" id="sym-group">
       <label class="sym-label"><input type="checkbox" value="none"> 無</label>
-      <label class="sym-label danger"><input type="checkbox" id="sym-chest"   value="chest">   胸痛／胸悶 ⚠️</label>
-      <label class="sym-label danger"><input type="checkbox" id="sym-breath"  value="breath">  呼吸困難 ⚠️</label>
-      <label class="sym-label danger"><input type="checkbox" id="sym-consci"  value="conscious"> 意識改變 ⚠️</label>
-      <label class="sym-label"><input type="checkbox" value="dizzy">   頭暈／頭痛</label>
-      <label class="sym-label"><input type="checkbox" value="palp">    心悸</label>
-      <label class="sym-label"><input type="checkbox" value="tired">   異常疲倦</label>
-      <label class="sym-label"><input type="checkbox" value="nausea">  噁心</label>
+      <label class="sym-label danger"><input type="checkbox" id="sym-chest"  value="chest">   胸痛／胸悶 ⚠️</label>
+      <label class="sym-label danger"><input type="checkbox" id="sym-breath" value="breath">  呼吸困難 ⚠️</label>
+      <label class="sym-label danger"><input type="checkbox" id="sym-consci" value="conscious"> 意識改變 ⚠️</label>
+      <label class="sym-label"><input type="checkbox" value="dizzy">  頭暈／頭痛</label>
+      <label class="sym-label"><input type="checkbox" value="palp">   心悸</label>
+      <label class="sym-label"><input type="checkbox" value="tired">  異常疲倦</label>
+      <label class="sym-label"><input type="checkbox" value="nausea"> 噁心</label>
     </div>
     <div class="field" style="margin-top:12px;">
       <label>備註（可留空）</label>
-      <textarea id="f-note" rows="2"
-        placeholder="例：昨日睡眠不足 4 小時、目前服用高血壓藥等"></textarea>
+      <textarea id="f-note" rows="2" placeholder="例：昨日睡眠不足 4 小時、目前服用高血壓藥等"></textarea>
     </div>
   </div>
 
-  <!-- 判定結果 -->
   <div id="result-area" style="display:none;">
     <div class="ind-grid" id="ind-row"></div>
     <div id="result-banner"></div>
@@ -408,40 +377,76 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 </div>
 
 <!-- ══════════════════════════════════════════
-     TAB 2：今日儀表板
-══════════════════════════════════════════ -->
-<div id="tab-dashboard" style="display:none;">
-  <div class="kpi-grid" id="kpi-row">
-    <div class="kpi"><div class="kpi-num" id="kpi-total">—</div><div class="kpi-lab">今日填報人數</div></div>
-    <div class="kpi red"><div class="kpi-num" id="kpi-red">—</div><div class="kpi-lab">🔴 紅燈</div></div>
-    <div class="kpi amber"><div class="kpi-num" id="kpi-amber">—</div><div class="kpi-lab">🟡 黃燈</div></div>
-  </div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <div class="card-title" style="margin:0;">今日全員狀態</div>
-      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadDashboard()">↻ 重新整理</button>
-    </div>
-    <div id="dashboard-list"><div class="empty-state">載入中…</div></div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════
-     TAB 3：主管審核
+     TAB 2：主管審核
 ══════════════════════════════════════════ -->
 <div id="tab-supervisor" style="display:none;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <p style="font-size:14px;color:var(--muted);">未簽核紀錄（黃燈/紅燈優先顯示）</p>
+
+  <!-- 批次簽核卡 -->
+  <div class="batch-card">
+    <div class="card-title">⚡ 批次簽核</div>
+    <p style="font-size:13px;color:var(--amber-text);margin-bottom:14px;">
+      勾選下方紀錄後，填入主管資訊一次簽核。點「全選當日」快速選取指定日期所有待簽核紀錄。
+    </p>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="field">
+        <label>簽核日期（全選用）</label>
+        <input id="batch-date" type="date">
+      </div>
+      <div class="field">
+        <label>值班主管姓名</label>
+        <input id="batch-signer" type="text" placeholder="主管姓名">
+      </div>
+      <div class="field full">
+        <label>統一處置方式（選填）</label>
+        <select id="batch-disp" style="padding:9px 11px;border:1px solid var(--amber-bd);border-radius:var(--radius-sm);font-size:14px;background:var(--amber-bg);color:var(--amber-text);">
+          <option value="">略過（不填寫處置方式）</option>
+          <optgroup label="一般">
+            <option value="正常出勤">正常出勤</option>
+          </optgroup>
+          <optgroup label="黃燈處置">
+            <option value="安排靜態休息 15-30 分鐘後複測">安排靜態休息 15-30 分鐘後複測</option>
+            <option value="複測後恢復正常出勤，加強自主管理">複測後恢復正常出勤，加強自主管理</option>
+            <option value="彈性調整勤務：值班台">彈性調整勤務：值班台</option>
+            <option value="彈性調整勤務：消防安全檢查">彈性調整勤務：消防安全檢查</option>
+          </optgroup>
+          <optgroup label="紅燈處置">
+            <option value="複測仍紅燈：暫緩派遣，立即協助就醫">複測仍紅燈：暫緩派遣，立即協助就醫</option>
+            <option value="危險徵兆：立即通報，緊急送醫">危險徵兆：立即通報，緊急送醫</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" style="border-color:var(--amber-bd);color:var(--amber-text);" onclick="selectAllForBatch()">☑ 全選當日</button>
+      <button class="btn btn-ghost" style="border-color:var(--amber-bd);color:var(--amber-text);" onclick="deselectAllBatch()">☐ 取消全選</button>
+      <button class="btn btn-primary" onclick="doBatchSign()">✅ 批次確認簽核</button>
+    </div>
+    <p id="batch-msg" style="font-size:12px;color:var(--amber-text);margin-top:8px;display:none;"></p>
+  </div>
+
+  <!-- 待簽核清單 -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <p style="font-size:14px;color:var(--muted);">待簽核紀錄（紅燈 / 黃燈 優先顯示）</p>
     <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadSupervisor()">↻ 重新整理</button>
   </div>
   <div id="supervisor-list"><div class="empty-state">載入中…</div></div>
 </div>
 
 <!-- ══════════════════════════════════════════
-     TAB 4：歷史紀錄
+     TAB 3：歷史紀錄
 ══════════════════════════════════════════ -->
 <div id="tab-history" style="display:none;">
   <div class="card" style="margin-bottom:14px;">
-    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+    <div class="card-title">篩選條件</div>
+    <div class="form-grid hist-filter-grid" style="grid-template-columns:1fr 1fr 1fr 1fr auto;">
+      <div class="field">
+        <label>日期起</label>
+        <input id="hist-date-from" type="date">
+      </div>
+      <div class="field">
+        <label>日期迄</label>
+        <input id="hist-date-to" type="date">
+      </div>
       <div class="field">
         <label>單位篩選</label>
         <select id="hist-unit"><option value="">全部單位</option></select>
@@ -456,26 +461,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
         </select>
       </div>
       <div class="field" style="justify-content:flex-end;">
-        <label style="opacity:0;">搜尋</label>
+        <label style="opacity:0;">搜</label>
         <button class="btn btn-primary" onclick="loadHistory()">搜尋</button>
       </div>
     </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="setHistToday()">今日</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="setHistDays(7)">近 7 天</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="setHistDays(30)">近 30 天</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="clearHistDate()">不限日期</button>
+    </div>
   </div>
   <div class="card">
-    <div id="history-table"><div class="empty-state">點擊「搜尋」載入紀錄</div></div>
+    <div id="history-table"><div class="empty-state">請選擇篩選條件後點擊「搜尋」</div></div>
   </div>
 </div>
 
 <!-- ══════════════════════════════════════════
-     TAB 5：趨勢分析
+     TAB 4：趨勢分析
 ══════════════════════════════════════════ -->
 <div id="tab-trend" style="display:none;">
   <div class="card">
-    <div class="card-title">燈號分布（近 30 筆）</div>
+    <div class="card-title">燈號分布（全部紀錄）</div>
     <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
   </div>
   <div class="card">
-    <div class="card-title">每日異常趨勢（紅＋黃燈次數）</div>
+    <div class="card-title">每日異常趨勢（紅＋黃燈次數，近 14 天）</div>
     <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
   </div>
   <div class="card">
@@ -488,7 +499,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 </div>
 
 <!-- ══════════════════════════════════════════
-     TAB 6：判讀參考
+     TAB 5：判讀參考
 ══════════════════════════════════════════ -->
 <div id="tab-ref" style="display:none;">
   <div class="card">
@@ -497,12 +508,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <table class="ref-table">
       <thead>
         <tr>
-          <th>燈號</th>
-          <th>血壓 (mmHg)</th>
-          <th>心率 (bpm)</th>
-          <th>血氧 (%)</th>
-          <th>體溫 (℃)</th>
-          <th>處置方式</th>
+          <th>燈號</th><th>血壓 (mmHg)</th><th>心率 (bpm)</th>
+          <th>血氧 (%)</th><th>體溫 (℃)</th><th>處置方式</th>
         </tr>
       </thead>
       <tbody>
@@ -510,24 +517,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
           <td><span class="badge green"><span class="dot"></span>綠燈</span></td>
           <td>收縮 &lt;130 且 舒張 &lt;80<br><small style="color:var(--muted)">自主注意：收縮130–139 或 舒張80–89</small></td>
           <td>60–100<br><small style="color:var(--muted)">50–59（體能佳者）</small></td>
-          <td>≥ 95</td>
-          <td>耳溫 &lt;37.5<br>額溫 &lt;37.0</td>
+          <td>≥ 95</td><td>耳溫 &lt;37.5 / 額溫 &lt;37.0</td>
           <td>正常出勤<br><small>輕微異常者加強自主管理</small></td>
         </tr>
         <tr class="ref-row-amber">
           <td><span class="badge amber"><span class="dot"></span>黃燈</span></td>
           <td>收縮 140–159 或 舒張 90–99</td>
           <td>101–119 或 &lt;50</td>
-          <td>93–94</td>
-          <td>耳溫 37.5–37.9<br>額溫 37.0–37.4</td>
+          <td>93–94</td><td>耳溫 37.5–37.9 / 額溫 37.0–37.4</td>
           <td>休息複測 15–30 分鐘<br>仍異常→彈性低負荷勤務</td>
         </tr>
         <tr class="ref-row-red">
           <td><span class="badge red"><span class="dot"></span>紅燈</span></td>
           <td>收縮 ≥160 或 &lt;90<br>舒張 ≥100 或 &lt;60</td>
           <td>≥ 120</td>
-          <td>≤ 92</td>
-          <td>耳溫 ≥38.0 或 ≤35.5<br>額溫 ≥37.5 或 ≤35.0</td>
+          <td>≤ 92</td><td>耳溫 ≥38.0 或 ≤35.5 / 額溫 ≥37.5 或 ≤35.0</td>
           <td>休息複測 15–30 分鐘<br>仍異常→暫緩派遣、立即就醫</td>
         </tr>
       </tbody>
@@ -541,11 +545,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 </div>
 
 <!-- ══════════════════════════════════════════
-     TAB 7：設定
+     TAB 6：設定
 ══════════════════════════════════════════ -->
 <div id="tab-settings" style="display:none;">
-
-  <!-- API 連線設定 -->
   <div class="card">
     <div class="card-title">API 連線設定</div>
     <div class="setting-row">
@@ -555,10 +557,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       </div>
     </div>
     <div class="setting-row">
-      <div>
-        <div class="setting-label">TOKEN</div>
-        <div class="setting-hint">已預設於代碼內</div>
-      </div>
+      <div><div class="setting-label">TOKEN</div><div class="setting-hint">已預設於代碼內</div></div>
     </div>
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="testConnection()">測試連線</button>
@@ -566,16 +565,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <p id="settings-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
   </div>
 
-  <!-- 帳號密碼管理 -->
   <div class="card">
     <div class="card-title">帳號密碼管理</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
-      各單位登入密碼。<strong>大隊帳號</strong>可查閱所屬所有分隊資料；<strong>分隊帳號</strong>僅能查閱本單位資料。<br>
-      密碼直接在下方欄位輸入後，按「儲存所有密碼」統一套用。
+      <strong>大隊帳號</strong>可查閱所屬所有分隊資料；<strong>分隊帳號</strong>僅能查閱本單位資料。所有單位預設密碼均為 <code>0000</code>。
     </p>
-    <div id="accounts-container">
-      <!-- 由 buildAccountsTable() 動態填入 -->
-    </div>
+    <div id="accounts-container"></div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="saveAllPasswords()">💾 儲存所有密碼</button>
       <button class="btn btn-ghost" onclick="buildAccountsTable()">↻ 重置顯示</button>
@@ -583,7 +578,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <p id="accounts-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
   </div>
 
-  <!-- 設定頁管理員密碼 -->
   <div class="card">
     <div class="card-title">設定頁管理員密碼</div>
     <div class="setting-row">
@@ -602,7 +596,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     </div>
   </div>
 
-  <!-- 部署說明 -->
   <div class="card">
     <div class="card-title">部署說明</div>
     <ol style="font-size:13px;line-height:2;color:var(--muted);padding-left:16px;">
@@ -612,34 +605,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       <li>修改第 8 行 <code>TOKEN</code> 為自訂密碼</li>
       <li>右上角「部署」→「新增部署作業」→「網路應用程式」</li>
       <li>執行身份：<strong>我</strong>；存取對象：<strong>所有人（含匿名）</strong></li>
-      <li>複製部署後的 URL，貼入上方「GAS Web App URL」欄位</li>
-      <li>填入 TOKEN，按「儲存設定」並「測試連線」</li>
+      <li>複製部署後的 URL，填入代碼 <code>GAS_URL</code> 變數</li>
     </ol>
   </div>
 </div>
 
 </div><!-- /main -->
 
-<!-- ══════════════════════════════════════════
-     登入 Modal
-══════════════════════════════════════════ -->
+<!-- 登入 Modal -->
 <div class="pwd-overlay" id="login-modal">
   <div class="pwd-box">
     <h3>🔐 iCare 系統登入</h3>
     <p>請選擇您的單位，並輸入該單位密碼</p>
-    <select id="login-unit">
-      <option value="">請選擇登入單位…</option>
-    </select>
+    <select id="login-unit"><option value="">請選擇登入單位…</option></select>
     <input id="login-pwd" type="password" placeholder="密碼（預設：0000）"
       onkeydown="if(event.key==='Enter')doLogin()">
     <div class="pwd-err" id="login-error">帳號或密碼錯誤，請再試一次</div>
-    <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="doLogin()">登入系統</button>
+    <button class="btn btn-primary" style="width:100%;margin-top:2px;" onclick="doLogin()">登入系統</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     設定頁密碼 Modal
-══════════════════════════════════════════ -->
+<!-- 設定頁密碼 Modal -->
 <div class="pwd-overlay" id="settings-modal">
   <div class="pwd-box">
     <h3>⚙️ 進入設定頁</h3>
@@ -657,7 +643,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 <div class="toast" id="toast"></div>
 
 <script>
-// ── 硬寫設定（修改這裡即可）──────────────────────────────────
+// ── 硬寫設定 ──────────────────────────────────────────────────
 const GAS_URL   = 'https://script.google.com/macros/s/AKfycbyL8WZ-BEdlliidtlayL_5nlp4wZQ_zudjbyDLhf7RiUkSlV72KOZFD6kzTH4OaP6LFXg/exec';
 const GAS_TOKEN = 'icare_2025_CHANGE_ME';
 
@@ -670,165 +656,105 @@ const UNITS = {
   '局本部':   ['科技救災','安檢','指揮中心'],
 };
 
-// ── 依燈號的處置選項 ──────────────────────────────────────────
+// ── 處置選項 ──────────────────────────────────────────────────
 const DISPOSITION_OPTIONS = {
-  green: [
-    '正常出勤',
-    '自主注意：補充水分、注意保暖，加強自主管理',
-    '建議諮詢醫療或衛教建議',
-  ],
-  amber: [
-    '安排靜態休息 15-30 分鐘後複測',
-    '複測後恢復正常出勤，加強自主管理',
-    '彈性調整勤務：值班台',
-    '彈性調整勤務：水源車操作',
-    '彈性調整勤務：消防安全檢查',
-    '彈性調整勤務：訓練演習',
-    '彈性調整勤務：一般公務車駕駛',
-    '建議利用公餘時間就醫追蹤',
-  ],
-  red: [
-    '安排靜態休息 15-30 分鐘後複測，若期間胸痛或意識不清立即送醫',
-    '複測仍紅燈：暫緩派遣，立即協助就醫',
-    '危險徵兆（胸痛/呼吸困難/意識改變）：立即通報，緊急送醫',
-    '複測後彈性調整勤務：後勤支援工作',
-    '複測後彈性調整勤務：行政工作',
-    '複測後彈性調整勤務：待命',
-  ],
+  green: ['正常出勤','自主注意：補充水分、注意保暖，加強自主管理','建議諮詢醫療或衛教建議'],
+  amber: ['安排靜態休息 15-30 分鐘後複測','複測後恢復正常出勤，加強自主管理',
+    '彈性調整勤務：值班台','彈性調整勤務：水源車操作','彈性調整勤務：消防安全檢查',
+    '彈性調整勤務：訓練演習','彈性調整勤務：一般公務車駕駛','建議利用公餘時間就醫追蹤'],
+  red:   ['安排靜態休息 15-30 分鐘後複測，若期間胸痛或意識不清立即送醫',
+    '複測仍紅燈：暫緩派遣，立即協助就醫','危險徵兆（胸痛/呼吸困難/意識改變）：立即通報，緊急送醫',
+    '複測後彈性調整勤務：後勤支援工作','複測後彈性調整勤務：行政工作','複測後彈性調整勤務：待命'],
 };
 
 function dispositionSelect(id, light) {
   const opts = DISPOSITION_OPTIONS[light] || DISPOSITION_OPTIONS.green;
-  const optsHtml = opts.map(o => `<option value="${o}">${o}</option>`).join('');
+  const optsHtml = opts.map(o=>`<option value="${o}">${o}</option>`).join('');
   return `
     <select id="disp-${id}" onchange="toggleDispOther('${id}')"
       style="flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--border2);
       border-radius:var(--radius-sm);background:var(--surface);color:var(--text);min-width:0;">
-      <option value="">選擇處置方式…</option>
-      ${optsHtml}
+      <option value="">選擇處置方式…</option>${optsHtml}
       <option value="__other__">其他（自行輸入）</option>
     </select>
     <input type="text" id="disp-other-${id}" placeholder="請輸入其他處置說明"
       style="flex:1;font-size:13px;padding:8px 11px;border:1px solid var(--border2);
       border-radius:var(--radius-sm);background:var(--surface);color:var(--text);display:none;">`;
 }
-
 function toggleDispOther(id) {
   const sel = document.getElementById('disp-'+id);
-  const inp = document.getElementById('disp-other-'+id);
-  inp.style.display = sel.value === '__other__' ? '' : 'none';
+  document.getElementById('disp-other-'+id).style.display = sel.value==='__other__' ? '' : 'none';
 }
-
 function getDisposition(id) {
   const sel = document.getElementById('disp-'+id);
   if(!sel) return '';
-  if(sel.value === '__other__') {
-    const inp = document.getElementById('disp-other-'+id);
-    return inp ? inp.value.trim() : '';
-  }
+  if(sel.value==='__other__') { const i=document.getElementById('disp-other-'+id); return i?i.value.trim():''; }
   return sel.value;
 }
 
-// ── 本地設定讀寫 ──────────────────────────────────────────────
+// ── localStorage 封裝 ─────────────────────────────────────────
 const LS = {
   get: (k,d='') => localStorage.getItem('icare_'+k) ?? d,
-  set: (k,v) => localStorage.setItem('icare_'+k, v),
+  set: (k,v)    => localStorage.setItem('icare_'+k, v),
 };
 
 // ══════════════════════════════════════════════════════════════
 // 帳號系統
 // ══════════════════════════════════════════════════════════════
-
-// 目前登入的使用者
-let currentUser = null; // { unitName, role:'brigade'|'subunit', brigade, visibleUnits:[] }
-
-// 設定頁是否已解鎖（本 session）
+let currentUser  = null;
 let settingsUnlocked = false;
-// 待進入的分頁（登入前點擊的分頁）
-let pendingTab = null;
+let pendingTab   = null;
 
-// 取得帳號資料（localStorage，含預設）
 function getAccounts() {
-  const stored = LS.get('accounts', '');
-  if (stored) {
-    try { return JSON.parse(stored); } catch(e) {}
-  }
+  const s = LS.get('accounts','');
+  if(s){ try{ return JSON.parse(s); }catch(e){} }
   return buildDefaultAccounts();
 }
-
 function buildDefaultAccounts() {
-  const accounts = {};
-  Object.entries(UNITS).forEach(([brigade, subs]) => {
-    // 大隊帳號
-    accounts[brigade] = { password: '0000', role: 'brigade', brigade };
-    // 分隊帳號
-    subs.forEach(sub => {
-      if (sub !== brigade) {
-        accounts[sub] = { password: '0000', role: 'subunit', brigade, unit: sub };
-      }
-    });
+  const a = {};
+  Object.entries(UNITS).forEach(([brigade,subs])=>{
+    a[brigade] = { password:'0000', role:'brigade', brigade };
+    subs.forEach(sub=>{ if(sub!==brigade) a[sub]={password:'0000',role:'subunit',brigade,unit:sub}; });
   });
-  return accounts;
+  return a;
 }
+function saveAccounts(a){ LS.set('accounts', JSON.stringify(a)); }
+function getAdminPwd(){ return LS.get('admin_pwd','admin0000'); }
+function saveAdminPwd(p){ LS.set('admin_pwd',p); }
 
-function saveAccounts(accounts) {
-  LS.set('accounts', JSON.stringify(accounts));
-}
-
-// 取得管理員密碼（設定頁）
-function getAdminPwd() { return LS.get('admin_pwd', 'admin0000'); }
-function saveAdminPwd(pwd) { LS.set('admin_pwd', pwd); }
-
-// 取得某帳號可查閱的單位清單
 function getVisibleUnits(account) {
-  if (!account) return [];
-  if (account.role === 'brigade') {
-    const subs = UNITS[account.brigade] || [];
-    // 確保大隊本身也包含
-    return subs.includes(account.brigade) ? subs : [account.brigade, ...subs];
+  if(!account) return [];
+  if(account.role==='brigade'){
+    const subs = UNITS[account.brigade]||[];
+    return subs.includes(account.brigade) ? subs : [account.brigade,...subs];
   }
   return [account.unit];
 }
-
-// 根據目前登入者過濾資料
 function filterByUser(data) {
-  if (!currentUser || !currentUser.visibleUnits || currentUser.visibleUnits.length === 0) {
-    return data;
-  }
-  return data.filter(r => currentUser.visibleUnits.includes(r.unit));
+  if(!currentUser||!currentUser.visibleUnits||!currentUser.visibleUnits.length) return data;
+  return data.filter(r=>currentUser.visibleUnits.includes(r.unit));
 }
 
 // ── 登入 ──────────────────────────────────────────────────────
 function showLoginModal() {
   populateLoginUnitSelect();
   document.getElementById('login-modal').classList.add('show');
-  document.getElementById('login-pwd').value = '';
-  document.getElementById('login-error').style.display = 'none';
-  setTimeout(() => document.getElementById('login-unit').focus(), 80);
+  document.getElementById('login-pwd').value='';
+  document.getElementById('login-error').style.display='none';
+  setTimeout(()=>document.getElementById('login-unit').focus(),80);
 }
-
-function hideLoginModal() {
-  document.getElementById('login-modal').classList.remove('show');
-}
+function hideLoginModal(){ document.getElementById('login-modal').classList.remove('show'); }
 
 function populateLoginUnitSelect() {
   const sel = document.getElementById('login-unit');
-  sel.innerHTML = '<option value="">請選擇登入單位…</option>';
-  Object.entries(UNITS).forEach(([brigade, subs]) => {
-    const grp = document.createElement('optgroup');
-    grp.label = brigade;
-    // 大隊帳號
-    const bOpt = document.createElement('option');
-    bOpt.value = brigade;
-    bOpt.textContent = brigade + '（大隊帳號）';
-    grp.appendChild(bOpt);
-    // 分隊帳號
-    subs.forEach(sub => {
-      if (sub === brigade) return;
-      const opt = document.createElement('option');
-      opt.value = sub;
-      opt.textContent = sub;
-      grp.appendChild(opt);
+  sel.innerHTML='<option value="">請選擇登入單位…</option>';
+  Object.entries(UNITS).forEach(([brigade,subs])=>{
+    const grp=document.createElement('optgroup'); grp.label=brigade;
+    const bOpt=document.createElement('option'); bOpt.value=brigade;
+    bOpt.textContent=brigade+'（大隊帳號）'; grp.appendChild(bOpt);
+    subs.forEach(sub=>{
+      if(sub===brigade) return;
+      const o=document.createElement('option'); o.value=o.textContent=sub; grp.appendChild(o);
     });
     sel.appendChild(grp);
   });
@@ -837,40 +763,28 @@ function populateLoginUnitSelect() {
 function doLogin() {
   const unitName = document.getElementById('login-unit').value;
   const password = document.getElementById('login-pwd').value;
-  const errEl = document.getElementById('login-error');
-  errEl.style.display = 'none';
-
-  if (!unitName) { errEl.textContent = '請先選擇登入單位'; errEl.style.display = ''; return; }
-
+  const errEl    = document.getElementById('login-error');
+  errEl.style.display='none';
+  if(!unitName){ errEl.textContent='請先選擇登入單位'; errEl.style.display=''; return; }
   const accounts = getAccounts();
   const account  = accounts[unitName];
-  if (!account) { errEl.textContent = '找不到此單位帳號'; errEl.style.display = ''; return; }
-  if (account.password !== password) {
-    errEl.textContent = '密碼錯誤，請再試一次';
-    errEl.style.display = '';
-    document.getElementById('login-pwd').value = '';
-    document.getElementById('login-pwd').focus();
-    return;
+  if(!account){ errEl.textContent='找不到此單位帳號'; errEl.style.display=''; return; }
+  if(account.password!==password){
+    errEl.textContent='密碼錯誤，請再試一次'; errEl.style.display='';
+    document.getElementById('login-pwd').value='';
+    document.getElementById('login-pwd').focus(); return;
   }
-
-  currentUser = {
-    unitName,
-    role:         account.role,
-    brigade:      account.brigade,
-    visibleUnits: getVisibleUnits(account),
-  };
+  currentUser = { unitName, role:account.role, brigade:account.brigade, visibleUnits:getVisibleUnits(account) };
   LS.set('currentUser', JSON.stringify(currentUser));
   hideLoginModal();
   updateUserDisplay();
   loadUnitSelects();
-  if (pendingTab) { const t = pendingTab; pendingTab = null; goTab(t); }
+  if(pendingTab){ const t=pendingTab; pendingTab=null; goTab(t); }
 }
 
 function doLogout() {
-  currentUser = null;
-  pendingTab  = null;
-  settingsUnlocked = false;
-  LS.set('currentUser', '');
+  currentUser=null; pendingTab=null; settingsUnlocked=false;
+  LS.set('currentUser','');
   updateUserDisplay();
   goTab('submit');
   toast('已登出系統');
@@ -880,529 +794,434 @@ function doLogout() {
 function updateUserDisplay() {
   const badge  = document.getElementById('user-badge');
   const logBtn = document.getElementById('logout-btn');
-  if (currentUser) {
-    const roleLabel = currentUser.role === 'brigade' ? '大隊' : '分隊';
-    badge.textContent  = currentUser.unitName + '（' + roleLabel + '）';
-    badge.style.display = '';
-    logBtn.style.display = '';
+  if(currentUser){
+    badge.textContent = currentUser.unitName+'（'+(currentUser.role==='brigade'?'大隊':'分隊')+'）';
+    badge.style.display=logBtn.style.display='';
   } else {
-    badge.style.display  = 'none';
-    logBtn.style.display = 'none';
+    badge.style.display=logBtn.style.display='none';
   }
 }
 
 // ── 設定頁解鎖 ────────────────────────────────────────────────
 function checkAndGoSettings() {
-  if (!settingsUnlocked) {
+  if(!settingsUnlocked){
     document.getElementById('settings-modal').classList.add('show');
-    document.getElementById('settings-pwd-input').value = '';
-    document.getElementById('settings-pwd-error').style.display = 'none';
-    setTimeout(() => document.getElementById('settings-pwd-input').focus(), 80);
+    document.getElementById('settings-pwd-input').value='';
+    document.getElementById('settings-pwd-error').style.display='none';
+    setTimeout(()=>document.getElementById('settings-pwd-input').focus(),80);
     return;
   }
   goTab('settings');
 }
-
-function closeSettingsModal() {
-  document.getElementById('settings-modal').classList.remove('show');
-}
-
+function closeSettingsModal(){ document.getElementById('settings-modal').classList.remove('show'); }
 function doSettingsLogin() {
-  const entered = document.getElementById('settings-pwd-input').value;
-  if (entered === getAdminPwd()) {
-    settingsUnlocked = true;
+  const entered=document.getElementById('settings-pwd-input').value;
+  if(entered===getAdminPwd()){
+    settingsUnlocked=true;
     document.getElementById('settings-modal').classList.remove('show');
     goTab('settings');
   } else {
-    document.getElementById('settings-pwd-error').style.display = '';
-    document.getElementById('settings-pwd-input').value = '';
+    document.getElementById('settings-pwd-error').style.display='';
+    document.getElementById('settings-pwd-input').value='';
     document.getElementById('settings-pwd-input').focus();
   }
 }
-
 function saveAdminPwdBtn() {
-  const val = document.getElementById('cfg-admin-pwd').value.trim();
-  if (!val) { toast('請輸入新管理員密碼'); return; }
-  saveAdminPwd(val);
-  document.getElementById('cfg-admin-pwd').value = '';
+  const v=document.getElementById('cfg-admin-pwd').value.trim();
+  if(!v){ toast('請輸入新管理員密碼'); return; }
+  saveAdminPwd(v);
+  document.getElementById('cfg-admin-pwd').value='';
   toast('✓ 管理員密碼已更新');
 }
 
 // ── 帳號管理表格 ──────────────────────────────────────────────
 function buildAccountsTable() {
-  const accounts = getAccounts();
-  const container = document.getElementById('accounts-container');
-  if (!container) return;
-
-  let html = '';
-  Object.entries(UNITS).forEach(([brigade, subs]) => {
-    html += `<div class="acc-section">
-      <div class="acc-brigade-header">🏢 ${brigade}</div>`;
-
-    // 大隊帳號行
-    const brigadeAcc = accounts[brigade] || { password: '0000' };
-    const bKey = encodeURIComponent(brigade);
-    html += `<div class="acc-row">
+  const accounts=getAccounts();
+  const container=document.getElementById('accounts-container');
+  if(!container) return;
+  let html='';
+  Object.entries(UNITS).forEach(([brigade,subs])=>{
+    html+=`<div class="acc-section"><div class="acc-brigade-header">🏢 ${brigade}</div>`;
+    const bk=encodeURIComponent(brigade);
+    const bAcc=accounts[brigade]||{password:'0000'};
+    html+=`<div class="acc-row">
       <span class="acc-name" style="font-weight:700;">${brigade}</span>
       <span class="acc-role-tag brigade">大隊帳號</span>
-      <input type="text" class="acc-pwd-input" id="acc-${bKey}"
-        value="${escHtml(brigadeAcc.password)}" placeholder="密碼">
+      <input type="text" class="acc-pwd-input" id="acc-${bk}" value="${escHtml(bAcc.password)}" placeholder="密碼">
     </div>`;
-
-    // 分隊帳號行
-    subs.forEach(sub => {
-      if (sub === brigade) return;
-      const subAcc = accounts[sub] || { password: '0000' };
-      const sKey = encodeURIComponent(sub);
-      html += `<div class="acc-row" style="padding-left:14px;">
+    subs.forEach(sub=>{
+      if(sub===brigade) return;
+      const sk=encodeURIComponent(sub);
+      const sAcc=accounts[sub]||{password:'0000'};
+      html+=`<div class="acc-row" style="padding-left:14px;">
         <span class="acc-name">└ ${sub}</span>
         <span class="acc-role-tag subunit">分隊帳號</span>
-        <input type="text" class="acc-pwd-input" id="acc-${sKey}"
-          value="${escHtml(subAcc.password)}" placeholder="密碼">
+        <input type="text" class="acc-pwd-input" id="acc-${sk}" value="${escHtml(sAcc.password)}" placeholder="密碼">
       </div>`;
     });
-
-    html += '</div>';
+    html+='</div>';
   });
-
-  container.innerHTML = html;
+  container.innerHTML=html;
 }
-
 function saveAllPasswords() {
-  const accounts = getAccounts();
-  let changed = 0;
-
-  Object.entries(UNITS).forEach(([brigade, subs]) => {
-    // 大隊
-    const bEl = document.getElementById('acc-' + encodeURIComponent(brigade));
-    if (bEl && bEl.value.trim()) {
-      if (!accounts[brigade]) accounts[brigade] = { role: 'brigade', brigade };
-      accounts[brigade].password = bEl.value.trim();
-      changed++;
-    }
-    // 分隊
-    subs.forEach(sub => {
-      if (sub === brigade) return;
-      const sEl = document.getElementById('acc-' + encodeURIComponent(sub));
-      if (sEl && sEl.value.trim()) {
-        if (!accounts[sub]) accounts[sub] = { role: 'subunit', brigade, unit: sub };
-        accounts[sub].password = sEl.value.trim();
-        changed++;
-      }
+  const accounts=getAccounts(); let changed=0;
+  Object.entries(UNITS).forEach(([brigade,subs])=>{
+    const bEl=document.getElementById('acc-'+encodeURIComponent(brigade));
+    if(bEl&&bEl.value.trim()){ if(!accounts[brigade]) accounts[brigade]={role:'brigade',brigade}; accounts[brigade].password=bEl.value.trim(); changed++; }
+    subs.forEach(sub=>{
+      if(sub===brigade) return;
+      const sEl=document.getElementById('acc-'+encodeURIComponent(sub));
+      if(sEl&&sEl.value.trim()){ if(!accounts[sub]) accounts[sub]={role:'subunit',brigade,unit:sub}; accounts[sub].password=sEl.value.trim(); changed++; }
     });
   });
-
   saveAccounts(accounts);
-  showMsg('accounts-msg', `✓ 已儲存 ${changed} 個單位的密碼設定`);
+  showMsg('accounts-msg',`✓ 已儲存 ${changed} 個單位的密碼設定`);
   toast('✓ 帳號密碼已更新');
 }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ── 管理分頁存取控制 ──────────────────────────────────────────
-const LOCKED_TABS = ['dashboard','supervisor','history','trend'];
-
+// ── 鎖定分頁控制 ─────────────────────────────────────────────
+const LOCKED_TABS = ['supervisor','history','trend'];
 function checkAndGoTab(id) {
-  if (LOCKED_TABS.includes(id) && !currentUser) {
-    pendingTab = id;
-    showLoginModal();
-    return;
-  }
+  if(LOCKED_TABS.includes(id)&&!currentUser){ pendingTab=id; showLoginModal(); return; }
   goTab(id);
 }
 
 // ── 分頁切換 ──────────────────────────────────────────────────
-const TABS = ['submit','ref','dashboard','supervisor','history','trend','settings'];
+const TABS = ['submit','ref','supervisor','history','trend','settings'];
 function goTab(id) {
-  TABS.forEach(t => {
-    document.getElementById('tab-'+t).style.display = t===id ? '' : 'none';
-  });
-  document.querySelectorAll('.nav-btn').forEach((b,i) => {
-    b.classList.toggle('active', TABS[i]===id);
-  });
-  if (id==='dashboard')  loadDashboard();
-  if (id==='supervisor') loadSupervisor();
-  if (id==='trend')      loadTrend();
-  if (id==='settings')   buildAccountsTable();
+  TABS.forEach(t=>{ document.getElementById('tab-'+t).style.display = t===id?'':'none'; });
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{ b.classList.toggle('active',TABS[i]===id); });
+  if(id==='supervisor') loadSupervisor();
+  if(id==='trend')      loadTrend();
+  if(id==='settings')   buildAccountsTable();
 }
 
-// ── 本地設定 ──────────────────────────────────────────────────
-function saveSettings() {
-  showMsg('settings-msg','✓ 設定已儲存');
-}
-function loadSettings() {
-  // URL 與 TOKEN 已硬寫於代碼
-}
+function loadSettings(){}
 
-// ── 單位選擇器邏輯 ────────────────────────────────────────────
+// ── 單位選擇器 ────────────────────────────────────────────────
 function selectBrigade(brigade) {
-  document.querySelectorAll('.brigade-btn').forEach(b => {
-    b.classList.toggle('active', b.textContent === brigade);
-  });
-  const grid = document.getElementById('subunit-grid');
-  grid.style.display = '';
-  grid.innerHTML = UNITS[brigade].map(u =>
-    `<button type="button" class="subunit-btn" onclick="selectSubunit('${u}')">${u}</button>`
-  ).join('');
-  document.getElementById('f-unit').value = '';
-  updateUnitDisplay('');
+  document.querySelectorAll('.brigade-btn').forEach(b=>b.classList.toggle('active',b.textContent===brigade));
+  const grid=document.getElementById('subunit-grid');
+  grid.style.display='';
+  grid.innerHTML=UNITS[brigade].map(u=>`<button type="button" class="subunit-btn" onclick="selectSubunit('${u}')">${u}</button>`).join('');
+  document.getElementById('f-unit').value=''; updateUnitDisplay('');
 }
-
 function selectSubunit(unit) {
-  document.querySelectorAll('.subunit-btn').forEach(b => {
-    b.classList.toggle('active', b.textContent === unit);
-  });
-  document.getElementById('f-unit').value = unit;
-  LS.set('myunit', unit);
-  updateUnitDisplay(unit);
+  document.querySelectorAll('.subunit-btn').forEach(b=>b.classList.toggle('active',b.textContent===unit));
+  document.getElementById('f-unit').value=unit;
+  LS.set('myunit',unit); updateUnitDisplay(unit);
 }
-
-function updateUnitDisplay(unit) {
-  document.getElementById('unit-display').textContent = unit || '未選擇單位';
-}
+function updateUnitDisplay(unit){ document.getElementById('unit-display').textContent=unit||'未選擇單位'; }
 
 // ── 初始化 ────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('f-shift').value = new Date().toISOString().split('T')[0];
-
-  // 還原上次選擇的填報單位
-  const lastUnit = LS.get('myunit');
-  if (lastUnit) {
-    for (const [brigade, subs] of Object.entries(UNITS)) {
-      if (subs.includes(lastUnit)) {
-        selectBrigade(brigade);
-        setTimeout(() => selectSubunit(lastUnit), 0);
-        break;
-      }
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('f-shift').value=new Date().toISOString().split('T')[0];
+  const lastUnit=LS.get('myunit');
+  if(lastUnit){
+    for(const [brigade,subs] of Object.entries(UNITS)){
+      if(subs.includes(lastUnit)){ selectBrigade(brigade); setTimeout(()=>selectSubunit(lastUnit),0); break; }
     }
   }
-
-  loadSettings();
   checkApiStatus();
-  document.getElementById('today-badge').textContent =
+  document.getElementById('today-badge').textContent=
     new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
-
-  document.querySelectorAll('#sym-group input').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const hasDanger = ['sym-chest','sym-breath','sym-consci'].some(id=>document.getElementById(id).checked);
-      document.getElementById('danger-flag').style.display = hasDanger ? 'block' : 'none';
+  document.querySelectorAll('#sym-group input').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      const h=['sym-chest','sym-breath','sym-consci'].some(id=>document.getElementById(id).checked);
+      document.getElementById('danger-flag').style.display=h?'block':'none';
     });
   });
-
+  // 預設批次日期 = 今日
+  document.getElementById('batch-date').value=new Date().toISOString().split('T')[0];
+  // 預設歷史紀錄日期 = 今日
+  setHistToday();
   // 還原登入狀態
-  const storedUser = LS.get('currentUser', '');
-  if (storedUser) {
-    try {
-      currentUser = JSON.parse(storedUser);
-      updateUserDisplay();
-      loadUnitSelects();
-    } catch(e) {
-      currentUser = null;
-    }
-  }
-
-  // 未登入時不強制彈窗，使用者可直接填報；
-  // 點擊鎖定分頁時才會觸發登入流程
+  const stored=LS.get('currentUser','');
+  if(stored){ try{ currentUser=JSON.parse(stored); updateUserDisplay(); loadUnitSelects(); }catch(e){ currentUser=null; } }
 });
 
-// ── API 呼叫 ──────────────────────────────────────────────────
+// ── API ───────────────────────────────────────────────────────
 async function apiGet(params) {
-  if(!GAS_URL) throw new Error('尚未設定 GAS URL');
-  const q = new URLSearchParams({ token: GAS_TOKEN, ...params });
-  const r = await fetch(`${GAS_URL}?${q}`);
-  const j = await r.json();
-  if(j.status === 'error') throw new Error(j.message);
+  const q=new URLSearchParams({token:GAS_TOKEN,...params});
+  const r=await fetch(`${GAS_URL}?${q}`);
+  const j=await r.json();
+  if(j.status==='error') throw new Error(j.message);
   return j;
 }
-
 async function apiPost(body) {
-  if(!GAS_URL) throw new Error('尚未設定 GAS URL');
-  const r = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ token: GAS_TOKEN, ...body }),
-  });
-  const j = await r.json();
-  if(j.status === 'error') throw new Error(j.message);
+  const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({token:GAS_TOKEN,...body})});
+  const j=await r.json();
+  if(j.status==='error') throw new Error(j.message);
   return j;
 }
-
 async function checkApiStatus() {
-  const el = document.getElementById('api-status-badge');
-  if(!GAS_URL) { el.textContent='● 未設定'; el.className='api-status err'; return; }
-  try {
-    await apiGet({ action:'ping' });
-    el.textContent='● 已連線'; el.className='api-status ok';
-  } catch(e) {
-    el.textContent='● 連線失敗'; el.className='api-status err';
-  }
+  const el=document.getElementById('api-status-badge');
+  try{ await apiGet({action:'ping'}); el.textContent='● 已連線'; el.className='api-status ok'; }
+  catch(e){ el.textContent='● 連線失敗'; el.className='api-status err'; }
 }
-
 async function testConnection() {
-  try {
-    await apiGet({ action:'ping' });
-    showMsg('settings-msg','✓ 連線成功！');
-    checkApiStatus();
-  } catch(e) {
-    showMsg('settings-msg','✗ 連線失敗：'+e.message);
-  }
+  try{ await apiGet({action:'ping'}); showMsg('settings-msg','✓ 連線成功！'); checkApiStatus(); }
+  catch(e){ showMsg('settings-msg','✗ 連線失敗：'+e.message); }
 }
 
-// ── 歷史紀錄單位下拉（依登入權限）────────────────────────────
+// ── 歷史紀錄單位下拉 ─────────────────────────────────────────
 function loadUnitSelects() {
-  const sel = document.getElementById('hist-unit');
-  sel.innerHTML = '<option value="">全部單位</option>';
-
-  if (!currentUser) return;
-
-  if (currentUser.role === 'brigade') {
-    // 大隊帳號：顯示所有可查閱的分隊
-    const grp = document.createElement('optgroup');
-    grp.label = currentUser.brigade;
-    currentUser.visibleUnits.forEach(u => {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = u;
-      grp.appendChild(opt);
-    });
+  const sel=document.getElementById('hist-unit');
+  sel.innerHTML='<option value="">全部單位</option>';
+  if(!currentUser) return;
+  if(currentUser.role==='brigade'){
+    const grp=document.createElement('optgroup'); grp.label=currentUser.brigade;
+    currentUser.visibleUnits.forEach(u=>{ const o=document.createElement('option'); o.value=o.textContent=u; grp.appendChild(o); });
     sel.appendChild(grp);
   } else {
-    // 分隊帳號：只顯示自己的單位
-    const opt = document.createElement('option');
-    opt.value = opt.textContent = currentUser.unitName;
-    sel.appendChild(opt);
+    const o=document.createElement('option'); o.value=o.textContent=currentUser.unitName; sel.appendChild(o);
   }
+}
+
+// ── 日期工具 ─────────────────────────────────────────────────
+function isoToSlash(d){ return String(d).replace(/-/g,'/'); }  // "2026-05-27" → "2026/05/27"
+function tsDate(ts){ return String(ts).substring(0,10); }      // "2026/05/27 14:30:00" → "2026/05/27"
+function todayIso(){ return new Date().toISOString().split('T')[0]; }
+
+function setHistToday(){
+  const t=todayIso();
+  document.getElementById('hist-date-from').value=t;
+  document.getElementById('hist-date-to').value=t;
+}
+function setHistDays(n){
+  const to=new Date(); const from=new Date(); from.setDate(from.getDate()-n+1);
+  document.getElementById('hist-date-from').value=from.toISOString().split('T')[0];
+  document.getElementById('hist-date-to').value=to.toISOString().split('T')[0];
+}
+function clearHistDate(){
+  document.getElementById('hist-date-from').value='';
+  document.getElementById('hist-date-to').value='';
 }
 
 // ── 燈號判定 ──────────────────────────────────────────────────
 function calcLight(d) {
-  const sbp=+d.sbp, dbp=+d.dbp, hr=+d.hr, spo2=+d.spo2, temp=+d.temp;
-  const syms = String(d.symptoms||'');
+  const sbp=+d.sbp,dbp=+d.dbp,hr=+d.hr,spo2=+d.spo2,temp=+d.temp;
+  const syms=String(d.symptoms||'');
   if(['chest','breath','conscious'].some(s=>syms.includes(s))) return 'red';
-  let lvl = 'green';
-  const up = l => { if(l==='red') lvl='red'; else if(l==='amber'&&lvl!=='red') lvl='amber'; };
-  if(sbp>=160||sbp<90||dbp>=100||dbp<60) up('red');
-  else if(sbp>=140||dbp>=90) up('amber');
+  let lvl='green';
+  const up=l=>{ if(l==='red') lvl='red'; else if(l==='amber'&&lvl!=='red') lvl='amber'; };
+  if(sbp>=160||sbp<90||dbp>=100||dbp<60) up('red'); else if(sbp>=140||dbp>=90) up('amber');
   if(hr>=120) up('red'); else if(hr>=101||hr<50) up('amber');
   if(spo2<=92) up('red'); else if(spo2<=94) up('amber');
   if(temp>=38.0||temp<=35.5) up('red'); else if(temp>=37.5) up('amber');
   return lvl;
 }
-
 function indLevel(type,val) {
   if(type==='sbp'){ if(val>=160||val<90) return 'red'; if(val>=140) return 'amber'; return 'green'; }
-  if(type==='dbp'){ if(val>=100||val<60) return 'red'; if(val>=90)  return 'amber'; return 'green'; }
-  if(type==='hr') { if(val>=120)         return 'red'; if(val>=101||val<50) return 'amber'; return 'green'; }
-  if(type==='spo2'){ if(val<=92)         return 'red'; if(val<=94)  return 'amber'; return 'green'; }
+  if(type==='dbp'){ if(val>=100||val<60) return 'red'; if(val>=90) return 'amber'; return 'green'; }
+  if(type==='hr'){  if(val>=120) return 'red'; if(val>=101||val<50) return 'amber'; return 'green'; }
+  if(type==='spo2'){ if(val<=92) return 'red'; if(val<=94) return 'amber'; return 'green'; }
   if(type==='temp'){ if(val>=38||val<=35.5) return 'red'; if(val>=37.5) return 'amber'; return 'green'; }
   return 'green';
 }
-
 const LIGHT_META = {
-  green: { emoji:'🟢', label:'綠燈 — 正常出勤',
-    desc: (sbp) => sbp>=130
-      ? '血壓輕微偏高（自主注意），請補充水分、注意保暖，觀察後續趨勢。維持正常出勤。'
-      : '各項生理指標均於正常範圍，可執行所有勤務任務。' },
-  amber: { emoji:'🟡', label:'黃燈 — 持續觀察',
-    desc: () => '請至休息區靜坐休息 15–30 分鐘後進行複測。若複測仍為黃燈，安排較低負荷勤務（值班台、水源車、消防安全檢查），暫停第一線瞄子手或搜救任務，建議利用公餘時間就醫追蹤。' },
-  red:   { emoji:'🔴', label:'紅燈 — 立即就醫',
-    desc: (_, forced) => forced
-      ? '已勾選危險徵兆（胸痛／呼吸困難／意識改變），無論數值為何均為紅燈，請立即通報值班主管，視情況立即送醫。'
-      : '請至休息區靜坐休息 15–30 分鐘後複測。若仍為紅燈，應暫緩所有勤務派遣，立即協助就醫，依診斷結果再評估低負荷勤務或後勤支援工作。' },
+  green:{ emoji:'🟢', label:'綠燈 — 正常出勤',
+    desc:(sbp)=>sbp>=130?'血壓輕微偏高（自主注意），請補充水分、注意保暖，觀察後續趨勢。維持正常出勤。':'各項生理指標均於正常範圍，可執行所有勤務任務。' },
+  amber:{ emoji:'🟡', label:'黃燈 — 持續觀察',
+    desc:()=>'請至休息區靜坐休息 15–30 分鐘後進行複測。若複測仍為黃燈，安排較低負荷勤務（值班台、水源車、消防安全檢查），暫停第一線瞄子手或搜救任務，建議利用公餘時間就醫追蹤。' },
+  red:{   emoji:'🔴', label:'紅燈 — 立即就醫',
+    desc:(_,forced)=>forced?'已勾選危險徵兆（胸痛／呼吸困難／意識改變），無論數值為何均為紅燈，請立即通報值班主管，視情況立即送醫。':'請至休息區靜坐休息 15–30 分鐘後複測。若仍為紅燈，應暫緩所有勤務派遣，立即協助就醫，依診斷結果再評估低負荷勤務或後勤支援工作。' },
 };
 
 function doAssess() {
   const sbp=+document.getElementById('f-sbp').value, dbp=+document.getElementById('f-dbp').value;
-  const hr=+document.getElementById('f-hr').value,   spo2=+document.getElementById('f-spo2').value;
+  const hr=+document.getElementById('f-hr').value, spo2=+document.getElementById('f-spo2').value;
   const temp=+document.getElementById('f-temp').value;
-  if([sbp,dbp,hr,spo2,temp].some(isNaN)||[sbp,dbp,hr,spo2,temp].some(v=>!v)){
-    toast('請填寫所有生理數值再判定'); return;
-  }
-  const syms = getSymptoms();
-  const forced = ['chest','breath','conscious'].some(s=>syms.includes(s));
-  const lvl = forced ? 'red' : calcLight({sbp,dbp,hr,spo2,temp,symptoms:syms});
-  const m = LIGHT_META[lvl];
-
-  document.getElementById('ind-row').innerHTML = [
-    {l:'血壓(收)',t:'sbp',v:sbp,u:''},
-    {l:'心率',t:'hr',v:hr,u:'bpm'},
-    {l:'血氧',t:'spo2',v:spo2,u:'%'},
-    {l:'體溫',t:'temp',v:temp,u:'℃'},
+  if([sbp,dbp,hr,spo2,temp].some(v=>!v||isNaN(v))){ toast('請填寫所有生理數值再判定'); return; }
+  const syms=getSymptoms();
+  const forced=['chest','breath','conscious'].some(s=>syms.includes(s));
+  const lvl=forced?'red':calcLight({sbp,dbp,hr,spo2,temp,symptoms:syms});
+  const m=LIGHT_META[lvl];
+  document.getElementById('ind-row').innerHTML=[
+    {l:'血壓(收)',t:'sbp',v:sbp,u:''},{l:'心率',t:'hr',v:hr,u:'bpm'},
+    {l:'血氧',t:'spo2',v:spo2,u:'%'},{l:'體溫',t:'temp',v:temp,u:'℃'},
   ].map(d=>`<div class="ind-card ${forced?'red':indLevel(d.t,d.v)}">
-    <div class="ind-val">${d.v}${d.u}</div>
-    <div class="ind-lab">${d.l}</div></div>`).join('');
-
-  document.getElementById('result-banner').innerHTML =
-    `<div class="result-banner ${lvl}">
-      <div class="result-title ${lvl}">${m.emoji} ${m.label}</div>
-      <div class="result-desc ${lvl}">${m.desc(sbp,forced)}</div>
-    </div>`;
-  document.getElementById('result-area').style.display = '';
+    <div class="ind-val">${d.v}${d.u}</div><div class="ind-lab">${d.l}</div></div>`).join('');
+  document.getElementById('result-banner').innerHTML=
+    `<div class="result-banner ${lvl}"><div class="result-title ${lvl}">${m.emoji} ${m.label}</div>
+    <div class="result-desc ${lvl}">${m.desc(sbp,forced)}</div></div>`;
+  document.getElementById('result-area').style.display='';
 }
-
-function getSymptoms() {
+function getSymptoms(){
   return Array.from(document.querySelectorAll('#sym-group input:checked'))
-    .map(c=>c.value).filter(v=>v!=='none').join(',') || '無';
+    .map(c=>c.value).filter(v=>v!=='none').join(',')||'無';
 }
-
 async function doSubmit() {
-  const vals = {
-    unit:     document.getElementById('f-unit').value,
-    name:     document.getElementById('f-name').value,
-    shift:    document.getElementById('f-shift').value,
-    sbp:      document.getElementById('f-sbp').value,
-    dbp:      document.getElementById('f-dbp').value,
-    hr:       document.getElementById('f-hr').value,
-    spo2:     document.getElementById('f-spo2').value,
-    temp:     document.getElementById('f-temp').value,
-    fatigue:  document.getElementById('f-fatigue').value,
-    symptoms: getSymptoms(),
-    note:     document.getElementById('f-note').value,
-  };
-  if(!vals.sbp||!vals.dbp||!vals.hr||!vals.spo2||!vals.temp){
-    toast('請填寫所有生理數值'); return;
-  }
+  const vals={unit:document.getElementById('f-unit').value,name:document.getElementById('f-name').value,
+    shift:document.getElementById('f-shift').value,sbp:document.getElementById('f-sbp').value,
+    dbp:document.getElementById('f-dbp').value,hr:document.getElementById('f-hr').value,
+    spo2:document.getElementById('f-spo2').value,temp:document.getElementById('f-temp').value,
+    fatigue:document.getElementById('f-fatigue').value,symptoms:getSymptoms(),
+    note:document.getElementById('f-note').value};
+  if(!vals.unit){ toast('請先選擇單位再儲存'); return; }
+  if(!vals.sbp||!vals.dbp||!vals.hr||!vals.spo2||!vals.temp){ toast('請填寫所有生理數值'); return; }
   showMsg('submit-msg','⏳ 儲存中…');
-  try {
-    const res = await apiPost({ action:'submit', data: vals });
-    const lvl = res.light;
+  try{
+    const res=await apiPost({action:'submit',data:vals});
+    const lvl=res.light;
     showMsg('submit-msg',`✓ 已儲存（${LIGHT_META[lvl].emoji} ${LIGHT_META[lvl].label}，ID: ${res.id}）`);
     toast('填報成功！');
-  } catch(e) {
-    showMsg('submit-msg','✗ 儲存失敗：'+e.message+'\n（請至「設定」確認 GAS URL 與 TOKEN）');
-  }
+  }catch(e){ showMsg('submit-msg','✗ 儲存失敗：'+e.message); }
 }
-
-function clearForm() {
-  ['f-name','f-sbp','f-dbp','f-hr','f-spo2','f-temp','f-note'].forEach(id=>{
-    document.getElementById(id).value='';
-  });
-  document.getElementById('f-shift').value = new Date().toISOString().split('T')[0];
-  document.getElementById('f-fatigue').value=0;
-  document.getElementById('fval').textContent='0';
+function clearForm(){
+  ['f-name','f-sbp','f-dbp','f-hr','f-spo2','f-temp','f-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-shift').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-fatigue').value=0; document.getElementById('fval').textContent='0';
   document.querySelectorAll('#sym-group input').forEach(c=>c.checked=false);
   document.getElementById('result-area').style.display='none';
   document.getElementById('danger-flag').style.display='none';
   document.getElementById('submit-msg').style.display='none';
 }
 
-// ── 今日儀表板 ────────────────────────────────────────────────
-const BADGE_HTML = lvl =>
-  `<span class="badge ${lvl}"><span class="dot"></span>${{green:'🟢 綠燈',amber:'🟡 黃燈',red:'🔴 紅燈'}[lvl]}</span>`;
+// ── 燈號 badge ────────────────────────────────────────────────
+const BADGE_HTML=lvl=>`<span class="badge ${lvl}"><span class="dot"></span>${{green:'🟢 綠燈',amber:'🟡 黃燈',red:'🔴 紅燈'}[lvl]}</span>`;
 
-async function loadDashboard() {
-  document.getElementById('dashboard-list').innerHTML = '<div class="empty-state">載入中…</div>';
-  try {
-    const res  = await apiGet({ action:'getAll', today:'true' });
-    let   data = filterByUser(res.data || []);
-
-    document.getElementById('kpi-total').textContent = data.length;
-    document.getElementById('kpi-red').textContent   = data.filter(r=>r.light==='red').length;
-    document.getElementById('kpi-amber').textContent = data.filter(r=>r.light==='amber').length;
-
-    if(!data.length){
-      document.getElementById('dashboard-list').innerHTML='<div class="empty-state">今日尚無填報紀錄</div>'; return;
-    }
-    const order = {red:0,amber:1,green:2};
-    data.sort((a,b)=>order[a.light]-order[b.light]);
-
-    document.getElementById('dashboard-list').innerHTML = data.map(r=>`
-      <div class="person-row">
-        <div>
-          <div class="person-name">${r.name||'（未填）'}</div>
-          <div class="person-unit">${r.unit||''} · ${r.shift||''}</div>
-          <div class="person-detail">BP ${r.sbp}/${r.dbp} · HR ${r.hr} · SpO₂ ${r.spo2}% · ${r.temp}℃</div>
-        </div>
-        <div style="text-align:right;min-width:80px;">
-          ${BADGE_HTML(r.light)}
-          ${String(r.signed)==='true'?'<div style="font-size:11px;color:var(--muted);margin-top:4px;">✓ '+r.signer+'</div>':''}
-        </div>
-      </div>`).join('');
-  } catch(e) {
-    document.getElementById('dashboard-list').innerHTML =
-      `<div class="empty-state">載入失敗：${e.message}</div>`;
-  }
-}
-
-// ── 主管審核 ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// 主管審核
+// ══════════════════════════════════════════════════════════════
 async function loadSupervisor() {
   document.getElementById('supervisor-list').innerHTML='<div class="empty-state">載入中…</div>';
-  try {
-    const res     = await apiGet({ action:'getAll' });
-    const pending = filterByUser(res.data || [])
+  try{
+    const res=await apiGet({action:'getAll'});
+    const pending=filterByUser(res.data||[])
       .filter(r=>String(r.signed)!=='true')
       .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
-
     if(!pending.length){
       document.getElementById('supervisor-list').innerHTML='<div class="empty-state">目前無待簽核紀錄 🎉</div>'; return;
     }
-
-    document.getElementById('supervisor-list').innerHTML = pending.map(r=>`
-      <div class="card" id="card-${r.id}">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div>
-            <div style="font-size:16px;font-weight:700;">${r.name||'（未填）'}</div>
-            <div style="font-size:12px;color:var(--muted);">${r.unit||''} · ${r.shift||''} · ${r.timestamp||''}</div>
+    document.getElementById('supervisor-list').innerHTML=pending.map(r=>`
+      <div class="card" id="card-${r.id}" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <input type="checkbox" class="batch-check" value="${r.id}" data-date="${r.shift||''}"
+            style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);margin-top:4px;flex-shrink:0;">
+          <div class="sup-card-inner">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div>
+                <div style="font-size:16px;font-weight:700;">${r.name||'（未填）'}</div>
+                <div style="font-size:12px;color:var(--muted);">${r.unit||''} · ${r.shift||''} · ${r.timestamp||''}</div>
+              </div>
+              ${BADGE_HTML(r.light)}
+            </div>
+            <div class="ind-grid">
+              <div class="ind-card"><div class="ind-val">${r.sbp}/${r.dbp}</div><div class="ind-lab">血壓</div></div>
+              <div class="ind-card"><div class="ind-val">${r.hr}</div><div class="ind-lab">心率</div></div>
+              <div class="ind-card"><div class="ind-val">${r.spo2}%</div><div class="ind-lab">血氧</div></div>
+              <div class="ind-card"><div class="ind-val">${r.temp}℃</div><div class="ind-lab">體溫</div></div>
+            </div>
+            ${r.symptoms&&r.symptoms!=='無'?`<p style="font-size:12px;color:var(--red-text);margin-bottom:6px;">⚠️ 症狀：${r.symptoms}</p>`:''}
+            ${r.note?`<p style="font-size:12px;color:var(--muted);margin-bottom:6px;">備註：${r.note}</p>`:''}
+            ${r.fatigue>3?`<p style="font-size:12px;color:var(--amber-text);margin-bottom:8px;">⚠️ 疲勞指數 ${r.fatigue}/5，請特別留意</p>`:''}
+            <div class="sign-row" style="flex-wrap:wrap;gap:8px;">
+              <input type="text" id="signer-${r.id}" placeholder="主管姓名" style="max-width:130px;">
+              ${dispositionSelect(r.id,r.light)}
+              <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" onclick="doSign('${r.id}')">確認簽核</button>
+            </div>
           </div>
-          ${BADGE_HTML(r.light)}
-        </div>
-        <div class="ind-grid">
-          <div class="ind-card"><div class="ind-val">${r.sbp}/${r.dbp}</div><div class="ind-lab">血壓</div></div>
-          <div class="ind-card"><div class="ind-val">${r.hr}</div><div class="ind-lab">心率</div></div>
-          <div class="ind-card"><div class="ind-val">${r.spo2}%</div><div class="ind-lab">血氧</div></div>
-          <div class="ind-card"><div class="ind-val">${r.temp}℃</div><div class="ind-lab">體溫</div></div>
-        </div>
-        ${r.symptoms&&r.symptoms!=='無'?`<p style="font-size:12px;color:var(--red-text);margin-bottom:6px;">⚠️ 症狀：${r.symptoms}</p>`:''}
-        ${r.note?`<p style="font-size:12px;color:var(--muted);margin-bottom:6px;">備註：${r.note}</p>`:''}
-        ${r.fatigue>3?`<p style="font-size:12px;color:var(--amber-text);margin-bottom:8px;">⚠️ 疲勞指數 ${r.fatigue}/5，請特別留意</p>`:''}
-        <div class="sign-row" style="flex-wrap:wrap;gap:8px;">
-          <input type="text" id="signer-${r.id}" placeholder="主管姓名" style="max-width:130px;">
-          ${dispositionSelect(r.id, r.light)}
-          <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" onclick="doSign('${r.id}')">確認簽核</button>
         </div>
       </div>`).join('');
-  } catch(e) {
+  }catch(e){
     document.getElementById('supervisor-list').innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
   }
 }
 
 async function doSign(id) {
-  const signer = document.getElementById('signer-'+id).value.trim();
-  const disp   = getDisposition(id);
+  const signer=document.getElementById('signer-'+id).value.trim();
+  const disp=getDisposition(id);
   if(!signer){ toast('請輸入主管姓名'); return; }
-  try {
-    await apiPost({ action:'sign', id, signer, disposition:disp });
-    const card = document.getElementById('card-'+id);
-    if(card) card.style.display = 'none';
+  try{
+    await apiPost({action:'sign',id,signer,disposition:disp});
+    document.getElementById('card-'+id).style.display='none';
     toast('✓ 簽核完成：'+signer);
-    setTimeout(()=>loadSupervisor(), 2500);
-  } catch(e) { toast('簽核失敗：'+e.message); }
+    setTimeout(()=>loadSupervisor(),2500);
+  }catch(e){ toast('簽核失敗：'+e.message); }
 }
 
-// ── 歷史紀錄 ──────────────────────────────────────────────────
+// ── 批次簽核 ──────────────────────────────────────────────────
+function selectAllForBatch() {
+  const date=document.getElementById('batch-date').value;
+  document.querySelectorAll('.batch-check').forEach(cb=>{
+    cb.checked = !date || cb.dataset.date===date;
+  });
+  const count=document.querySelectorAll('.batch-check:checked').length;
+  toast(`已選取 ${count} 筆紀錄`);
+}
+function deselectAllBatch(){
+  document.querySelectorAll('.batch-check').forEach(cb=>cb.checked=false);
+}
+
+async function doBatchSign() {
+  const signer=document.getElementById('batch-signer').value.trim();
+  const disp  =document.getElementById('batch-disp').value;
+  const errMsg=document.getElementById('batch-msg');
+  errMsg.style.display='none';
+  if(!signer){ errMsg.textContent='⚠️ 請填入主管姓名'; errMsg.style.display=''; return; }
+  const checked=Array.from(document.querySelectorAll('.batch-check:checked')).map(c=>c.value);
+  if(!checked.length){ errMsg.textContent='⚠️ 請先勾選要批次簽核的紀錄'; errMsg.style.display=''; return; }
+
+  errMsg.textContent=`⏳ 批次簽核中（0 / ${checked.length}）…`; errMsg.style.display='';
+  let success=0, fail=0;
+  for(const id of checked){
+    try{
+      await apiPost({action:'sign',id,signer,disposition:disp});
+      document.getElementById('card-'+id).style.display='none';
+      success++;
+      errMsg.textContent=`⏳ 批次簽核中（${success} / ${checked.length}）…`;
+    }catch(e){ fail++; console.warn('批次簽核失敗:',id,e); }
+  }
+  errMsg.textContent=`✓ 批次簽核完成：${success} 筆成功${fail?'、'+fail+' 筆失敗':''}`;
+  toast(`✓ 批次簽核 ${success} 筆完成`);
+  setTimeout(()=>loadSupervisor(), 2000);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 歷史紀錄（含日期篩選）
+// ══════════════════════════════════════════════════════════════
 async function loadHistory() {
   document.getElementById('history-table').innerHTML='<div class="empty-state">載入中…</div>';
-  const unit  = document.getElementById('hist-unit').value;
-  const light = document.getElementById('hist-light').value;
-  try {
-    const params = { action:'getAll' };
-    if(light) params.light = light;
-    const res  = await apiGet(params);
-    let data = filterByUser(res.data || []);
-    // 若有單位篩選，再進一步過濾
-    if(unit) data = data.filter(r => r.unit === unit);
+  const dateFrom = document.getElementById('hist-date-from').value;  // "2026-05-27"
+  const dateTo   = document.getElementById('hist-date-to').value;
+  const unit     = document.getElementById('hist-unit').value;
+  const light    = document.getElementById('hist-light').value;
+  try{
+    const params={action:'getAll'};
+    if(light) params.light=light;
+    const res=await apiGet(params);
+    let data=filterByUser(res.data||[]);
 
-    if(!data.length){
-      document.getElementById('history-table').innerHTML='<div class="empty-state">查無符合紀錄</div>'; return;
+    // 日期篩選（timestamp 格式：yyyy/MM/dd HH:mm:ss 或 yyyy/M/d …）
+    if(dateFrom){
+      const from=isoToSlash(dateFrom); // "2026/05/27"
+      data=data.filter(r=>tsDate(r.timestamp)>=from);
     }
-    document.getElementById('history-table').innerHTML = `
+    if(dateTo){
+      const to=isoToSlash(dateTo);
+      data=data.filter(r=>tsDate(r.timestamp)<=to);
+    }
+    // 單位篩選
+    if(unit) data=data.filter(r=>r.unit===unit);
+
+    if(!data.length){ document.getElementById('history-table').innerHTML='<div class="empty-state">查無符合紀錄</div>'; return; }
+
+    // 統計小結
+    const total=data.length, reds=data.filter(r=>r.light==='red').length, ambers=data.filter(r=>r.light==='amber').length;
+    const summary=`<div style="display:flex;gap:16px;margin-bottom:12px;font-size:13px;flex-wrap:wrap;">
+      <span>共 <strong>${total}</strong> 筆</span>
+      <span style="color:var(--red-text);">🔴 紅燈 ${reds} 筆</span>
+      <span style="color:var(--amber-text);">🟡 黃燈 ${ambers} 筆</span>
+      <span style="color:var(--green-text);">🟢 綠燈 ${total-reds-ambers} 筆</span>
+    </div>`;
+
+    document.getElementById('history-table').innerHTML=summary+`
       <div style="overflow-x:auto;">
       <table class="data-table">
         <thead><tr>
-          <th>時間</th><th>姓名</th><th>單位</th>
+          <th>日期</th><th>姓名</th><th>單位</th>
           <th>血壓</th><th>心率</th><th>血氧</th><th>體溫</th>
           <th>燈號</th><th>簽核</th>
         </tr></thead>
@@ -1410,93 +1229,76 @@ async function loadHistory() {
           <td style="font-size:11px;white-space:nowrap;">${r.timestamp}</td>
           <td style="font-weight:600;">${r.name||'—'}</td>
           <td style="font-size:12px;">${r.unit||'—'}</td>
-          <td>${r.sbp}/${r.dbp}</td>
-          <td>${r.hr}</td>
-          <td>${r.spo2}%</td>
-          <td>${r.temp}℃</td>
+          <td>${r.sbp}/${r.dbp}</td><td>${r.hr}</td>
+          <td>${r.spo2}%</td><td>${r.temp}℃</td>
           <td>${BADGE_HTML(r.light)}</td>
           <td style="font-size:12px;">${String(r.signed)==='true'?'✓ '+r.signer:'—'}</td>
         </tr>`).join('')}</tbody>
       </table></div>`;
-  } catch(e) {
+  }catch(e){
     document.getElementById('history-table').innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
   }
 }
 
-// ── 趨勢分析 ──────────────────────────────────────────────────
-let chartPie=null, chartTrend=null, chartUnit=null;
-
+// ══════════════════════════════════════════════════════════════
+// 趨勢分析
+// ══════════════════════════════════════════════════════════════
+let chartPie=null,chartTrend=null,chartUnit=null;
 async function loadTrend() {
-  try {
-    const res  = await apiGet({ action:'getAll' });
-    const data = filterByUser(res.data || []);
-
-    const counts = {green:0,amber:0,red:0};
+  try{
+    const res=await apiGet({action:'getAll'});
+    const data=filterByUser(res.data||[]);
+    const counts={green:0,amber:0,red:0};
     data.forEach(r=>counts[r.light]=(counts[r.light]||0)+1);
     if(chartPie) chartPie.destroy();
-    chartPie = new Chart(document.getElementById('chart-pie'), {
+    chartPie=new Chart(document.getElementById('chart-pie'),{
       type:'doughnut',
-      data:{ labels:['🟢 綠燈','🟡 黃燈','🔴 紅燈'],
-        datasets:[{ data:[counts.green,counts.amber,counts.red],
-          backgroundColor:['#639922','#BA7517','#A32D2D'],borderWidth:0 }] },
-      options:{ plugins:{ legend:{ position:'bottom',labels:{color:'#888',font:{size:12}} } }, cutout:'55%' }
+      data:{labels:['🟢 綠燈','🟡 黃燈','🔴 紅燈'],
+        datasets:[{data:[counts.green,counts.amber,counts.red],backgroundColor:['#639922','#BA7517','#A32D2D'],borderWidth:0}]},
+      options:{plugins:{legend:{position:'bottom',labels:{color:'#888',font:{size:12}}}},cutout:'55%'}
     });
-
     const byDay={};
     data.forEach(r=>{
-      const day=(r.timestamp||'').substring(0,10).replace(/\//g,'-');
+      const day=tsDate(r.timestamp);
       if(!byDay[day]) byDay[day]={green:0,amber:0,red:0};
       byDay[day][r.light]=(byDay[day][r.light]||0)+1;
     });
     const days=Object.keys(byDay).sort().slice(-14);
     if(chartTrend) chartTrend.destroy();
-    chartTrend = new Chart(document.getElementById('chart-trend'),{
+    chartTrend=new Chart(document.getElementById('chart-trend'),{
       type:'bar',
-      data:{ labels:days,
-        datasets:[
-          {label:'🔴 紅燈',data:days.map(d=>byDay[d].red),backgroundColor:'#f09595'},
-          {label:'🟡 黃燈',data:days.map(d=>byDay[d].amber),backgroundColor:'#FAC775'},
-        ]},
+      data:{labels:days,datasets:[
+        {label:'🔴 紅燈',data:days.map(d=>byDay[d].red),backgroundColor:'#f09595'},
+        {label:'🟡 黃燈',data:days.map(d=>byDay[d].amber),backgroundColor:'#FAC775'},
+      ]},
       options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
         scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
         responsive:true,maintainAspectRatio:false}
     });
-
     const byUnit={};
-    data.forEach(r=>{
-      const u=r.unit||'未知';
-      if(!byUnit[u]) byUnit[u]={green:0,amber:0,red:0};
-      byUnit[u][r.light]=(byUnit[u][r.light]||0)+1;
-    });
+    data.forEach(r=>{ const u=r.unit||'未知'; if(!byUnit[u]) byUnit[u]={green:0,amber:0,red:0}; byUnit[u][r.light]=(byUnit[u][r.light]||0)+1; });
     const units=Object.keys(byUnit);
     if(chartUnit) chartUnit.destroy();
-    chartUnit = new Chart(document.getElementById('chart-unit'),{
+    chartUnit=new Chart(document.getElementById('chart-unit'),{
       type:'bar',
-      data:{ labels:units,
-        datasets:[
-          {label:'🔴 紅燈',data:units.map(u=>byUnit[u].red),backgroundColor:'#f09595'},
-          {label:'🟡 黃燈',data:units.map(u=>byUnit[u].amber),backgroundColor:'#FAC775'},
-          {label:'🟢 綠燈',data:units.map(u=>byUnit[u].green),backgroundColor:'#97C459'},
-        ]},
+      data:{labels:units,datasets:[
+        {label:'🔴 紅燈',data:units.map(u=>byUnit[u].red),backgroundColor:'#f09595'},
+        {label:'🟡 黃燈',data:units.map(u=>byUnit[u].amber),backgroundColor:'#FAC775'},
+        {label:'🟢 綠燈',data:units.map(u=>byUnit[u].green),backgroundColor:'#97C459'},
+      ]},
       options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
         scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
         responsive:true,maintainAspectRatio:false}
     });
-  } catch(e) { toast('趨勢圖載入失敗：'+e.message); }
+  }catch(e){ toast('趨勢圖載入失敗：'+e.message); }
 }
 
 // ── 工具 ──────────────────────────────────────────────────────
-function showMsg(id, msg) {
-  const el = document.getElementById(id);
-  el.textContent = msg;
-  el.style.display = '';
-}
-
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), 2800);
+function showMsg(id,msg){ const el=document.getElementById(id); el.textContent=msg; el.style.display=''; }
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2800);
 }
 </script>
 </body>
