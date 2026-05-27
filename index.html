@@ -77,7 +77,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 /* ── 疲勞滑桿 ── */
 .fatigue-wrap{display:flex;align-items:center;gap:10px;}
 .fatigue-wrap input[type=range]{flex:1;accent-color:var(--accent);}
-。fatigue-num{font-size:15px;font-weight:600;min-width:18px;}
+.fatigue-num{font-size:15px;font-weight:600;min-width:18px;}
 
 /* ── 症狀格 ── */
 .symptom-grid{display:flex;flex-wrap:wrap;gap:8px;}
@@ -126,7 +126,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 
 /* ── 按鈕 ── */
 .btn{padding:10px 18px;border-radius:var(--radius-sm);font-size:14px;
-  cursor:pointer;font-weight:500;transition:all .15s;border:1px solid transparent;}
+  cursor:pointer;font-weight:500;transition:all .15s;border:1px solid transparent;font-family:inherit;}
 .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
 .btn-primary:hover{opacity:.85;}
 .btn-ghost{background:none;color:var(--text);border-color:var(--border2);}
@@ -223,20 +223,49 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .subunit-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .unit-selected-hint{font-size:12px;color:var(--muted);margin-top:5px;}
 
-/* ── 密碼 Modal ── */
+/* ── Modal 通用 ── */
 .pwd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;
   display:none;align-items:center;justify-content:center;}
 .pwd-overlay.show{display:flex;}
 .pwd-box{background:var(--surface);border-radius:var(--radius);padding:28px 24px;
-  width:300px;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+  width:320px;box-shadow:0 8px 32px rgba(0,0,0,.25);}
 .pwd-box h3{font-size:17px;font-weight:700;margin-bottom:6px;}
 .pwd-box p{font-size:13px;color:var(--muted);margin-bottom:16px;}
 .pwd-box input{width:100%;padding:10px 12px;border:1px solid var(--border2);
   border-radius:var(--radius-sm);font-size:15px;background:var(--surface);
   color:var(--text);margin-bottom:6px;}
 .pwd-box input:focus{outline:none;border-color:var(--accent);}
+.pwd-box select{width:100%;padding:10px 12px;border:1px solid var(--border2);
+  border-radius:var(--radius-sm);font-size:14px;background:var(--surface);
+  color:var(--text);margin-bottom:10px;}
+.pwd-box select:focus{outline:none;border-color:var(--accent);}
 .pwd-err{font-size:12px;color:var(--red-text);margin-bottom:10px;display:none;}
 .lock-icon{font-size:11px;opacity:.6;margin-left:3px;}
+
+/* ── 使用者資訊（頂部列）── */
+.user-badge{font-size:12px;background:var(--green-bg);color:var(--green-text);
+  padding:3px 9px;border-radius:99px;border:1px solid var(--green-bd);display:none;}
+.logout-btn{font-size:12px;padding:4px 10px;border-radius:99px;background:none;
+  border:1px solid var(--border2);color:var(--muted);cursor:pointer;
+  font-family:inherit;display:none;transition:background .15s;}
+.logout-btn:hover{background:var(--bg);}
+
+/* ── 帳號管理表格 ── */
+.acc-section{margin-bottom:8px;}
+.acc-brigade-header{font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--muted);padding:10px 0 6px;
+  border-bottom:1px solid var(--border);margin-bottom:8px;}
+.acc-row{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px dashed var(--border);}
+.acc-row:last-child{border-bottom:none;}
+.acc-name{font-size:13px;flex:1;}
+.acc-role-tag{font-size:11px;padding:2px 8px;border-radius:99px;flex-shrink:0;}
+.acc-role-tag.brigade{background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-bd);}
+.acc-role-tag.subunit{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-bd);}
+.acc-pwd-input{padding:7px 10px;border:1px solid var(--border2);
+  border-radius:var(--radius-sm);font-size:13px;background:var(--surface);
+  color:var(--text);width:130px;}
+.acc-pwd-input:focus{outline:none;border-color:var(--accent);}
 
 /* ── RWD ── */
 @media(max-width:540px){
@@ -253,9 +282,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <div class="logo">iCare <span>消防健康管理</span></div>
     <div class="unit-tag" id="unit-display">未設定單位</div>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span id="today-badge"></span>
     <span id="api-status-badge" class="api-status checking">● 連線中</span>
+    <span class="user-badge" id="user-badge"></span>
+    <button class="logout-btn" id="logout-btn" onclick="doLogout()">登出</button>
   </div>
 </div>
 
@@ -267,7 +298,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <button class="nav-btn" onclick="checkAndGoTab('supervisor')">✅ 主管審核<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoTab('history')">📂 歷史紀錄<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoTab('trend')">📈 趨勢分析<span class="lock-icon">🔒</span></button>
-  <button class="nav-btn" onclick="goTab('settings')">⚙️ 設定</button>
+  <button class="nav-btn" onclick="checkAndGoSettings()">⚙️ 設定<span class="lock-icon">🔒</span></button>
 </div>
 
 <div class="main">
@@ -513,6 +544,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
      TAB 7：設定
 ══════════════════════════════════════════ -->
 <div id="tab-settings" style="display:none;">
+
+  <!-- API 連線設定 -->
   <div class="card">
     <div class="card-title">API 連線設定</div>
     <div class="setting-row">
@@ -532,21 +565,44 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     </div>
     <p id="settings-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
   </div>
+
+  <!-- 帳號密碼管理 -->
   <div class="card">
-    <div class="card-title">隱私保護密碼</div>
+    <div class="card-title">帳號密碼管理</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+      各單位登入密碼。<strong>大隊帳號</strong>可查閱所屬所有分隊資料；<strong>分隊帳號</strong>僅能查閱本單位資料。<br>
+      密碼直接在下方欄位輸入後，按「儲存所有密碼」統一套用。
+    </p>
+    <div id="accounts-container">
+      <!-- 由 buildAccountsTable() 動態填入 -->
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveAllPasswords()">💾 儲存所有密碼</button>
+      <button class="btn btn-ghost" onclick="buildAccountsTable()">↻ 重置顯示</button>
+    </div>
+    <p id="accounts-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
+  </div>
+
+  <!-- 設定頁管理員密碼 -->
+  <div class="card">
+    <div class="card-title">設定頁管理員密碼</div>
     <div class="setting-row">
       <div>
-        <div class="setting-label">管理功能密碼</div>
-        <div class="setting-hint">儀表板、審核、歷史紀錄、趨勢分析的存取密碼（預設：0000）</div>
+        <div class="setting-label">更改管理員密碼</div>
+        <div class="setting-hint">進入設定頁面所需的密碼（預設：<code>admin0000</code>）</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <input id="cfg-lockpwd" type="password" placeholder="輸入新密碼" style="max-width:150px;">
-        <button class="btn btn-primary" style="font-size:13px;padding:7px 13px;" onclick="saveLockPwd()">更新密碼</button>
+        <input id="cfg-admin-pwd" type="password" placeholder="輸入新管理員密碼"
+          style="max-width:180px;padding:8px 10px;border:1px solid var(--border2);
+          border-radius:var(--radius-sm);font-size:13px;background:var(--surface);color:var(--text);">
+        <button class="btn btn-primary" style="font-size:13px;padding:7px 13px;" onclick="saveAdminPwdBtn()">更新</button>
         <button class="btn btn-ghost" style="font-size:13px;padding:7px 13px;"
-          onclick="sessionUnlocked=false;toast('🔒 管理功能已重新鎖定')">重新鎖定</button>
+          onclick="settingsUnlocked=false;toast('⚙️ 設定頁已重新鎖定')">重新鎖定設定</button>
       </div>
     </div>
   </div>
+
+  <!-- 部署說明 -->
   <div class="card">
     <div class="card-title">部署說明</div>
     <ol style="font-size:13px;line-height:2;color:var(--muted);padding-left:16px;">
@@ -564,17 +620,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 
 </div><!-- /main -->
 
-<!-- 密碼 Modal -->
-<div class="pwd-overlay" id="pwd-modal">
+<!-- ══════════════════════════════════════════
+     登入 Modal
+══════════════════════════════════════════ -->
+<div class="pwd-overlay" id="login-modal">
   <div class="pwd-box">
-    <h3>🔒 隱私保護</h3>
-    <p>此功能含個人健康資料，請輸入密碼存取</p>
-    <input id="pwd-input" type="password" placeholder="請輸入密碼"
-      onkeydown="if(event.key==='Enter')submitPwd()">
-    <div class="pwd-err" id="pwd-error">密碼錯誤，請再試一次</div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-primary" style="flex:1;" onclick="submitPwd()">解鎖</button>
-      <button class="btn btn-ghost" onclick="closePwdModal()">取消</button>
+    <h3>🔐 iCare 系統登入</h3>
+    <p>請選擇您的單位，並輸入該單位密碼</p>
+    <select id="login-unit">
+      <option value="">請選擇登入單位…</option>
+    </select>
+    <input id="login-pwd" type="password" placeholder="密碼（預設：0000）"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="pwd-err" id="login-error">帳號或密碼錯誤，請再試一次</div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="doLogin()">登入系統</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     設定頁密碼 Modal
+══════════════════════════════════════════ -->
+<div class="pwd-overlay" id="settings-modal">
+  <div class="pwd-box">
+    <h3>⚙️ 進入設定頁</h3>
+    <p>請輸入管理員密碼（預設：<code>admin0000</code>）</p>
+    <input id="settings-pwd-input" type="password" placeholder="管理員密碼"
+      onkeydown="if(event.key==='Enter')doSettingsLogin()">
+    <div class="pwd-err" id="settings-pwd-error">密碼錯誤，請再試一次</div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="doSettingsLogin()">確認</button>
+      <button class="btn btn-ghost" onclick="closeSettingsModal()">取消</button>
     </div>
   </div>
 </div>
@@ -595,7 +670,7 @@ const UNITS = {
   '局本部':   ['科技救災','安檢','指揮中心'],
 };
 
-// ── 依燈號的處置選項（參考作業指引）──────────────────────────
+// ── 依燈號的處置選項 ──────────────────────────────────────────
 const DISPOSITION_OPTIONS = {
   green: [
     '正常出勤',
@@ -624,9 +699,7 @@ const DISPOSITION_OPTIONS = {
 
 function dispositionSelect(id, light) {
   const opts = DISPOSITION_OPTIONS[light] || DISPOSITION_OPTIONS.green;
-  const optsHtml = opts.map(o =>
-    `<option value="${o}">${o}</option>`
-  ).join('');
+  const optsHtml = opts.map(o => `<option value="${o}">${o}</option>`).join('');
   return `
     <select id="disp-${id}" onchange="toggleDispOther('${id}')"
       style="flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--border2);
@@ -658,31 +731,323 @@ function getDisposition(id) {
 
 // ── 本地設定讀寫 ──────────────────────────────────────────────
 const LS = {
-  get: (k,d='') => localStorage.getItem('icare_'+k) || d,
+  get: (k,d='') => localStorage.getItem('icare_'+k) ?? d,
   set: (k,v) => localStorage.setItem('icare_'+k, v),
 };
 
+// ══════════════════════════════════════════════════════════════
+// 帳號系統
+// ══════════════════════════════════════════════════════════════
+
+// 目前登入的使用者
+let currentUser = null; // { unitName, role:'brigade'|'subunit', brigade, visibleUnits:[] }
+
+// 設定頁是否已解鎖（本 session）
+let settingsUnlocked = false;
+// 待進入的分頁（登入前點擊的分頁）
+let pendingTab = null;
+
+// 取得帳號資料（localStorage，含預設）
+function getAccounts() {
+  const stored = LS.get('accounts', '');
+  if (stored) {
+    try { return JSON.parse(stored); } catch(e) {}
+  }
+  return buildDefaultAccounts();
+}
+
+function buildDefaultAccounts() {
+  const accounts = {};
+  Object.entries(UNITS).forEach(([brigade, subs]) => {
+    // 大隊帳號
+    accounts[brigade] = { password: '0000', role: 'brigade', brigade };
+    // 分隊帳號
+    subs.forEach(sub => {
+      if (sub !== brigade) {
+        accounts[sub] = { password: '0000', role: 'subunit', brigade, unit: sub };
+      }
+    });
+  });
+  return accounts;
+}
+
+function saveAccounts(accounts) {
+  LS.set('accounts', JSON.stringify(accounts));
+}
+
+// 取得管理員密碼（設定頁）
+function getAdminPwd() { return LS.get('admin_pwd', 'admin0000'); }
+function saveAdminPwd(pwd) { LS.set('admin_pwd', pwd); }
+
+// 取得某帳號可查閱的單位清單
+function getVisibleUnits(account) {
+  if (!account) return [];
+  if (account.role === 'brigade') {
+    const subs = UNITS[account.brigade] || [];
+    // 確保大隊本身也包含
+    return subs.includes(account.brigade) ? subs : [account.brigade, ...subs];
+  }
+  return [account.unit];
+}
+
+// 根據目前登入者過濾資料
+function filterByUser(data) {
+  if (!currentUser || !currentUser.visibleUnits || currentUser.visibleUnits.length === 0) {
+    return data;
+  }
+  return data.filter(r => currentUser.visibleUnits.includes(r.unit));
+}
+
+// ── 登入 ──────────────────────────────────────────────────────
+function showLoginModal() {
+  populateLoginUnitSelect();
+  document.getElementById('login-modal').classList.add('show');
+  document.getElementById('login-pwd').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  setTimeout(() => document.getElementById('login-unit').focus(), 80);
+}
+
+function hideLoginModal() {
+  document.getElementById('login-modal').classList.remove('show');
+}
+
+function populateLoginUnitSelect() {
+  const sel = document.getElementById('login-unit');
+  sel.innerHTML = '<option value="">請選擇登入單位…</option>';
+  Object.entries(UNITS).forEach(([brigade, subs]) => {
+    const grp = document.createElement('optgroup');
+    grp.label = brigade;
+    // 大隊帳號
+    const bOpt = document.createElement('option');
+    bOpt.value = brigade;
+    bOpt.textContent = brigade + '（大隊帳號）';
+    grp.appendChild(bOpt);
+    // 分隊帳號
+    subs.forEach(sub => {
+      if (sub === brigade) return;
+      const opt = document.createElement('option');
+      opt.value = sub;
+      opt.textContent = sub;
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  });
+}
+
+function doLogin() {
+  const unitName = document.getElementById('login-unit').value;
+  const password = document.getElementById('login-pwd').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!unitName) { errEl.textContent = '請先選擇登入單位'; errEl.style.display = ''; return; }
+
+  const accounts = getAccounts();
+  const account  = accounts[unitName];
+  if (!account) { errEl.textContent = '找不到此單位帳號'; errEl.style.display = ''; return; }
+  if (account.password !== password) {
+    errEl.textContent = '密碼錯誤，請再試一次';
+    errEl.style.display = '';
+    document.getElementById('login-pwd').value = '';
+    document.getElementById('login-pwd').focus();
+    return;
+  }
+
+  currentUser = {
+    unitName,
+    role:         account.role,
+    brigade:      account.brigade,
+    visibleUnits: getVisibleUnits(account),
+  };
+  LS.set('currentUser', JSON.stringify(currentUser));
+  hideLoginModal();
+  updateUserDisplay();
+  loadUnitSelects();
+  if (pendingTab) { const t = pendingTab; pendingTab = null; goTab(t); }
+}
+
+function doLogout() {
+  currentUser = null;
+  pendingTab  = null;
+  settingsUnlocked = false;
+  LS.set('currentUser', '');
+  updateUserDisplay();
+  goTab('submit');
+  toast('已登出系統');
+  showLoginModal();
+}
+
+function updateUserDisplay() {
+  const badge  = document.getElementById('user-badge');
+  const logBtn = document.getElementById('logout-btn');
+  if (currentUser) {
+    const roleLabel = currentUser.role === 'brigade' ? '大隊' : '分隊';
+    badge.textContent  = currentUser.unitName + '（' + roleLabel + '）';
+    badge.style.display = '';
+    logBtn.style.display = '';
+  } else {
+    badge.style.display  = 'none';
+    logBtn.style.display = 'none';
+  }
+}
+
+// ── 設定頁解鎖 ────────────────────────────────────────────────
+function checkAndGoSettings() {
+  if (!settingsUnlocked) {
+    document.getElementById('settings-modal').classList.add('show');
+    document.getElementById('settings-pwd-input').value = '';
+    document.getElementById('settings-pwd-error').style.display = 'none';
+    setTimeout(() => document.getElementById('settings-pwd-input').focus(), 80);
+    return;
+  }
+  goTab('settings');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-modal').classList.remove('show');
+}
+
+function doSettingsLogin() {
+  const entered = document.getElementById('settings-pwd-input').value;
+  if (entered === getAdminPwd()) {
+    settingsUnlocked = true;
+    document.getElementById('settings-modal').classList.remove('show');
+    goTab('settings');
+  } else {
+    document.getElementById('settings-pwd-error').style.display = '';
+    document.getElementById('settings-pwd-input').value = '';
+    document.getElementById('settings-pwd-input').focus();
+  }
+}
+
+function saveAdminPwdBtn() {
+  const val = document.getElementById('cfg-admin-pwd').value.trim();
+  if (!val) { toast('請輸入新管理員密碼'); return; }
+  saveAdminPwd(val);
+  document.getElementById('cfg-admin-pwd').value = '';
+  toast('✓ 管理員密碼已更新');
+}
+
+// ── 帳號管理表格 ──────────────────────────────────────────────
+function buildAccountsTable() {
+  const accounts = getAccounts();
+  const container = document.getElementById('accounts-container');
+  if (!container) return;
+
+  let html = '';
+  Object.entries(UNITS).forEach(([brigade, subs]) => {
+    html += `<div class="acc-section">
+      <div class="acc-brigade-header">🏢 ${brigade}</div>`;
+
+    // 大隊帳號行
+    const brigadeAcc = accounts[brigade] || { password: '0000' };
+    const bKey = encodeURIComponent(brigade);
+    html += `<div class="acc-row">
+      <span class="acc-name" style="font-weight:700;">${brigade}</span>
+      <span class="acc-role-tag brigade">大隊帳號</span>
+      <input type="text" class="acc-pwd-input" id="acc-${bKey}"
+        value="${escHtml(brigadeAcc.password)}" placeholder="密碼">
+    </div>`;
+
+    // 分隊帳號行
+    subs.forEach(sub => {
+      if (sub === brigade) return;
+      const subAcc = accounts[sub] || { password: '0000' };
+      const sKey = encodeURIComponent(sub);
+      html += `<div class="acc-row" style="padding-left:14px;">
+        <span class="acc-name">└ ${sub}</span>
+        <span class="acc-role-tag subunit">分隊帳號</span>
+        <input type="text" class="acc-pwd-input" id="acc-${sKey}"
+          value="${escHtml(subAcc.password)}" placeholder="密碼">
+      </div>`;
+    });
+
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function saveAllPasswords() {
+  const accounts = getAccounts();
+  let changed = 0;
+
+  Object.entries(UNITS).forEach(([brigade, subs]) => {
+    // 大隊
+    const bEl = document.getElementById('acc-' + encodeURIComponent(brigade));
+    if (bEl && bEl.value.trim()) {
+      if (!accounts[brigade]) accounts[brigade] = { role: 'brigade', brigade };
+      accounts[brigade].password = bEl.value.trim();
+      changed++;
+    }
+    // 分隊
+    subs.forEach(sub => {
+      if (sub === brigade) return;
+      const sEl = document.getElementById('acc-' + encodeURIComponent(sub));
+      if (sEl && sEl.value.trim()) {
+        if (!accounts[sub]) accounts[sub] = { role: 'subunit', brigade, unit: sub };
+        accounts[sub].password = sEl.value.trim();
+        changed++;
+      }
+    });
+  });
+
+  saveAccounts(accounts);
+  showMsg('accounts-msg', `✓ 已儲存 ${changed} 個單位的密碼設定`);
+  toast('✓ 帳號密碼已更新');
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── 管理分頁存取控制 ──────────────────────────────────────────
+const LOCKED_TABS = ['dashboard','supervisor','history','trend'];
+
+function checkAndGoTab(id) {
+  if (LOCKED_TABS.includes(id) && !currentUser) {
+    pendingTab = id;
+    showLoginModal();
+    return;
+  }
+  goTab(id);
+}
+
+// ── 分頁切換 ──────────────────────────────────────────────────
+const TABS = ['submit','ref','dashboard','supervisor','history','trend','settings'];
+function goTab(id) {
+  TABS.forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===id ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach((b,i) => {
+    b.classList.toggle('active', TABS[i]===id);
+  });
+  if (id==='dashboard')  loadDashboard();
+  if (id==='supervisor') loadSupervisor();
+  if (id==='trend')      loadTrend();
+  if (id==='settings')   buildAccountsTable();
+}
+
+// ── 本地設定 ──────────────────────────────────────────────────
 function saveSettings() {
   showMsg('settings-msg','✓ 設定已儲存');
 }
-
 function loadSettings() {
-  // URL 與 TOKEN 已硬寫於代碼，無需從 localStorage 讀取
+  // URL 與 TOKEN 已硬寫於代碼
 }
 
 // ── 單位選擇器邏輯 ────────────────────────────────────────────
 function selectBrigade(brigade) {
-  // 標記選中的大隊
   document.querySelectorAll('.brigade-btn').forEach(b => {
     b.classList.toggle('active', b.textContent === brigade);
   });
-  // 顯示分隊
   const grid = document.getElementById('subunit-grid');
   grid.style.display = '';
   grid.innerHTML = UNITS[brigade].map(u =>
     `<button type="button" class="subunit-btn" onclick="selectSubunit('${u}')">${u}</button>`
   ).join('');
-  // 清除已選分隊
   document.getElementById('f-unit').value = '';
   updateUnitDisplay('');
 }
@@ -702,97 +1067,47 @@ function updateUnitDisplay(unit) {
 
 // ── 初始化 ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // 預設今日日期
   document.getElementById('f-shift').value = new Date().toISOString().split('T')[0];
-  // 還原上次選擇的單位
+
+  // 還原上次選擇的填報單位
   const lastUnit = LS.get('myunit');
   if (lastUnit) {
-    // 找到所屬大隊並展開
     for (const [brigade, subs] of Object.entries(UNITS)) {
       if (subs.includes(lastUnit)) {
         selectBrigade(brigade);
-        // 短暫延遲確保 DOM 已渲染後再標記分隊
         setTimeout(() => selectSubunit(lastUnit), 0);
         break;
       }
     }
   }
+
   loadSettings();
-  loadUnitSelects();
   checkApiStatus();
   document.getElementById('today-badge').textContent =
     new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+
   document.querySelectorAll('#sym-group input').forEach(cb => {
     cb.addEventListener('change', () => {
       const hasDanger = ['sym-chest','sym-breath','sym-consci'].some(id=>document.getElementById(id).checked);
       document.getElementById('danger-flag').style.display = hasDanger ? 'block' : 'none';
     });
   });
+
+  // 還原登入狀態
+  const storedUser = LS.get('currentUser', '');
+  if (storedUser) {
+    try {
+      currentUser = JSON.parse(storedUser);
+      updateUserDisplay();
+      loadUnitSelects();
+    } catch(e) {
+      currentUser = null;
+    }
+  }
+
+  // 未登入時不強制彈窗，使用者可直接填報；
+  // 點擊鎖定分頁時才會觸發登入流程
 });
-
-function initUnitDisplay() {
-  const u = LS.get('myunit');
-  document.getElementById('unit-display').textContent = u || '未選擇單位';
-}
-
-// ── 密碼鎖定 ──────────────────────────────────────────────────
-let sessionUnlocked = false;
-let pendingTab = null;
-const LOCKED_TABS = ['dashboard','supervisor','history','trend'];
-
-function getLockPwd() { return LS.get('lockpwd','0000'); }
-
-function checkAndGoTab(id) {
-  if(LOCKED_TABS.includes(id) && !sessionUnlocked) {
-    pendingTab = id;
-    document.getElementById('pwd-modal').classList.add('show');
-    document.getElementById('pwd-input').value = '';
-    document.getElementById('pwd-error').style.display = 'none';
-    setTimeout(()=>document.getElementById('pwd-input').focus(), 80);
-    return;
-  }
-  goTab(id);
-}
-
-function closePwdModal() {
-  document.getElementById('pwd-modal').classList.remove('show');
-  pendingTab = null;
-}
-
-function submitPwd() {
-  const entered = document.getElementById('pwd-input').value;
-  if(entered === getLockPwd()) {
-    sessionUnlocked = true;
-    closePwdModal();
-    if(pendingTab) goTab(pendingTab);
-  } else {
-    document.getElementById('pwd-error').style.display = '';
-    document.getElementById('pwd-input').value = '';
-    document.getElementById('pwd-input').focus();
-  }
-}
-
-function saveLockPwd() {
-  const pwd = document.getElementById('cfg-lockpwd').value;
-  if(!pwd){ toast('請輸入新密碼'); return; }
-  LS.set('lockpwd', pwd);
-  document.getElementById('cfg-lockpwd').value = '';
-  toast('✓ 密碼已更新');
-}
-
-// ── 分頁切換 ──────────────────────────────────────────────────
-const TABS = ['submit','ref','dashboard','supervisor','history','trend','settings'];
-function goTab(id) {
-  TABS.forEach(t => {
-    document.getElementById('tab-'+t).style.display = t===id ? '' : 'none';
-  });
-  document.querySelectorAll('.nav-btn').forEach((b,i) => {
-    b.classList.toggle('active', TABS[i]===id);
-  });
-  if(id==='dashboard')  loadDashboard();
-  if(id==='supervisor') loadSupervisor();
-  if(id==='trend')      loadTrend();
-}
 
 // ── API 呼叫 ──────────────────────────────────────────────────
 async function apiGet(params) {
@@ -837,20 +1152,29 @@ async function testConnection() {
   }
 }
 
-// ── 單位清單（歷史紀錄篩選用）────────────────────────────────
+// ── 歷史紀錄單位下拉（依登入權限）────────────────────────────
 function loadUnitSelects() {
   const sel = document.getElementById('hist-unit');
   sel.innerHTML = '<option value="">全部單位</option>';
-  Object.entries(UNITS).forEach(([brigade, subs]) => {
+
+  if (!currentUser) return;
+
+  if (currentUser.role === 'brigade') {
+    // 大隊帳號：顯示所有可查閱的分隊
     const grp = document.createElement('optgroup');
-    grp.label = brigade;
-    subs.forEach(u => {
+    grp.label = currentUser.brigade;
+    currentUser.visibleUnits.forEach(u => {
       const opt = document.createElement('option');
       opt.value = opt.textContent = u;
       grp.appendChild(opt);
     });
     sel.appendChild(grp);
-  });
+  } else {
+    // 分隊帳號：只顯示自己的單位
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = currentUser.unitName;
+    sel.appendChild(opt);
+  }
 }
 
 // ── 燈號判定 ──────────────────────────────────────────────────
@@ -956,7 +1280,6 @@ function clearForm() {
   ['f-name','f-sbp','f-dbp','f-hr','f-spo2','f-temp','f-note'].forEach(id=>{
     document.getElementById(id).value='';
   });
-  // 重設日期為今天
   document.getElementById('f-shift').value = new Date().toISOString().split('T')[0];
   document.getElementById('f-fatigue').value=0;
   document.getElementById('fval').textContent='0';
@@ -973,8 +1296,9 @@ const BADGE_HTML = lvl =>
 async function loadDashboard() {
   document.getElementById('dashboard-list').innerHTML = '<div class="empty-state">載入中…</div>';
   try {
-    const res = await apiGet({ action:'getAll', today:'true' });
-    const data = res.data || [];
+    const res  = await apiGet({ action:'getAll', today:'true' });
+    let   data = filterByUser(res.data || []);
+
     document.getElementById('kpi-total').textContent = data.length;
     document.getElementById('kpi-red').textContent   = data.filter(r=>r.light==='red').length;
     document.getElementById('kpi-amber').textContent = data.filter(r=>r.light==='amber').length;
@@ -982,7 +1306,6 @@ async function loadDashboard() {
     if(!data.length){
       document.getElementById('dashboard-list').innerHTML='<div class="empty-state">今日尚無填報紀錄</div>'; return;
     }
-    // 紅→黃→綠排序
     const order = {red:0,amber:1,green:2};
     data.sort((a,b)=>order[a.light]-order[b.light]);
 
@@ -1008,8 +1331,8 @@ async function loadDashboard() {
 async function loadSupervisor() {
   document.getElementById('supervisor-list').innerHTML='<div class="empty-state">載入中…</div>';
   try {
-    const res  = await apiGet({ action:'getAll' });
-    const pending = (res.data||[])
+    const res     = await apiGet({ action:'getAll' });
+    const pending = filterByUser(res.data || [])
       .filter(r=>String(r.signed)!=='true')
       .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
 
@@ -1052,7 +1375,6 @@ async function doSign(id) {
   if(!signer){ toast('請輸入主管姓名'); return; }
   try {
     await apiPost({ action:'sign', id, signer, disposition:disp });
-    // 立即從畫面移除，不等 reload
     const card = document.getElementById('card-'+id);
     if(card) card.style.display = 'none';
     toast('✓ 簽核完成：'+signer);
@@ -1067,10 +1389,12 @@ async function loadHistory() {
   const light = document.getElementById('hist-light').value;
   try {
     const params = { action:'getAll' };
-    if(unit)  params.unit  = unit;
     if(light) params.light = light;
     const res  = await apiGet(params);
-    const data = res.data || [];
+    let data = filterByUser(res.data || []);
+    // 若有單位篩選，再進一步過濾
+    if(unit) data = data.filter(r => r.unit === unit);
+
     if(!data.length){
       document.getElementById('history-table').innerHTML='<div class="empty-state">查無符合紀錄</div>'; return;
     }
@@ -1105,9 +1429,8 @@ let chartPie=null, chartTrend=null, chartUnit=null;
 async function loadTrend() {
   try {
     const res  = await apiGet({ action:'getAll' });
-    const data = res.data || [];
+    const data = filterByUser(res.data || []);
 
-    // 圓餅圖
     const counts = {green:0,amber:0,red:0};
     data.forEach(r=>counts[r.light]=(counts[r.light]||0)+1);
     if(chartPie) chartPie.destroy();
@@ -1119,7 +1442,6 @@ async function loadTrend() {
       options:{ plugins:{ legend:{ position:'bottom',labels:{color:'#888',font:{size:12}} } }, cutout:'55%' }
     });
 
-    // 趨勢折線圖
     const byDay={};
     data.forEach(r=>{
       const day=(r.timestamp||'').substring(0,10).replace(/\//g,'-');
@@ -1140,7 +1462,6 @@ async function loadTrend() {
         responsive:true,maintainAspectRatio:false}
     });
 
-    // 單位比較
     const byUnit={};
     data.forEach(r=>{
       const u=r.unit||'未知';
@@ -1158,8 +1479,7 @@ async function loadTrend() {
           {label:'🟢 綠燈',data:units.map(u=>byUnit[u].green),backgroundColor:'#97C459'},
         ]},
       options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
-        scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}},
-          y:{stacked:false}},
+        scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
         responsive:true,maintainAspectRatio:false}
     });
   } catch(e) { toast('趨勢圖載入失敗：'+e.message); }
