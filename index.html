@@ -932,8 +932,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       document.getElementById('danger-flag').style.display=h?'block':'none';
     });
   });
-  // 預設批次日期 = 今日
-  document.getElementById('batch-date').value=new Date().toISOString().split('T')[0];
+  // 預設批次日期 = 今日（台灣時區）
+  document.getElementById('batch-date').value=todayIso();
   // 預設歷史紀錄日期 = 今日
   setHistToday();
   // 還原登入狀態
@@ -980,9 +980,25 @@ function loadUnitSelects() {
 }
 
 // ── 日期工具 ─────────────────────────────────────────────────
-function isoToSlash(d){ return String(d).replace(/-/g,'/'); }  // "2026-05-27" → "2026/05/27"
-function tsDate(ts){ return String(ts).substring(0,10); }      // "2026/05/27 14:30:00" → "2026/05/27"
-function todayIso(){ return new Date().toISOString().split('T')[0]; }
+// 台灣本地今日日期（UTC+8），避免凌晨 0–8 點回傳昨天的 UTC 日期
+function todayIso(){
+  const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  return d.toISOString().split('T')[0]; // "2026-05-27"
+}
+// 任意時間戳 → ISO "yyyy-MM-dd"（統一比對格式，相容各種來源格式）
+function tsDate(ts){
+  const s = String(ts || '').trim();
+  if (!s) return '';
+  if (s.includes('T')) return s.substring(0, 10);         // "2026-05-27T16:00:00.000Z" → "2026-05-27"
+  return s.substring(0, 10).replace(/\//g, '-');          // "2026/05/27 14:30" → "2026-05-27"
+}
+// shift 欄位正規化（GAS 後端已處理，前端多一道防禦）
+function shiftToIso(s){
+  if (!s) return '';
+  s = String(s).trim();
+  if (s.includes('T')) return s.substring(0, 10);
+  return s.substring(0, 10).replace(/\//g, '-');
+}
 
 function setHistToday(){
   const t=todayIso();
@@ -990,7 +1006,9 @@ function setHistToday(){
   document.getElementById('hist-date-to').value=t;
 }
 function setHistDays(n){
-  const to=new Date(); const from=new Date(); from.setDate(from.getDate()-n+1);
+  const to=new Date(Date.now()+8*60*60*1000);
+  const from=new Date(Date.now()+8*60*60*1000);
+  from.setDate(from.getDate()-n+1);
   document.getElementById('hist-date-from').value=from.toISOString().split('T')[0];
   document.getElementById('hist-date-to').value=to.toISOString().split('T')[0];
 }
@@ -1095,10 +1113,10 @@ async function loadSupervisor() {
     if(!pending.length){
       document.getElementById('supervisor-list').innerHTML='<div class="empty-state">目前無待簽核紀錄 🎉</div>'; return;
     }
-    document.getElementById('supervisor-list').innerHTML=pending.map(r=>`
+    document.getElementById('supervisor-list').innerHTML=pending.map(r=>{const sd=shiftToIso(r.shift); return `
       <div class="card" id="card-${r.id}" style="margin-bottom:12px;">
         <div style="display:flex;align-items:flex-start;gap:12px;">
-          <input type="checkbox" class="batch-check" value="${r.id}" data-date="${r.shift||''}"
+          <input type="checkbox" class="batch-check" value="${r.id}" data-date="${sd}"
             style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);margin-top:4px;flex-shrink:0;">
           <div class="sup-card-inner">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -1124,7 +1142,7 @@ async function loadSupervisor() {
             </div>
           </div>
         </div>
-      </div>`).join('');
+      </div>`}).join('');
   }catch(e){
     document.getElementById('supervisor-list').innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
   }
@@ -1194,14 +1212,12 @@ async function loadHistory() {
     const res=await apiGet(params);
     let data=filterByUser(res.data||[]);
 
-    // 日期篩選（timestamp 格式：yyyy/MM/dd HH:mm:ss 或 yyyy/M/d …）
+    // 日期篩選：兩邊統一用 ISO "yyyy-MM-dd" 比對
     if(dateFrom){
-      const from=isoToSlash(dateFrom); // "2026/05/27"
-      data=data.filter(r=>tsDate(r.timestamp)>=from);
+      data=data.filter(r=>tsDate(r.timestamp)>=dateFrom);
     }
     if(dateTo){
-      const to=isoToSlash(dateTo);
-      data=data.filter(r=>tsDate(r.timestamp)<=to);
+      data=data.filter(r=>tsDate(r.timestamp)<=dateTo);
     }
     // 單位篩選
     if(unit) data=data.filter(r=>r.unit===unit);
