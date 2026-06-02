@@ -303,13 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       <div class="field full">
         <label>單位</label>
         <div class="unit-picker">
-          <div class="brigade-grid" id="brigade-grid">
-            <button type="button" class="brigade-btn" onclick="selectBrigade('台東大隊')">台東大隊</button>
-            <button type="button" class="brigade-btn" onclick="selectBrigade('關山大隊')">關山大隊</button>
-            <button type="button" class="brigade-btn" onclick="selectBrigade('大武大隊')">大武大隊</button>
-            <button type="button" class="brigade-btn" onclick="selectBrigade('成功大隊')">成功大隊</button>
-            <button type="button" class="brigade-btn" onclick="selectBrigade('局本部')">局本部</button>
-          </div>
+          <div class="brigade-grid" id="brigade-grid"></div>
           <div class="subunit-grid" id="subunit-grid" style="display:none;margin-top:8px;"></div>
         </div>
         <input type="hidden" id="f-unit" value="">
@@ -739,7 +733,8 @@ async function loadUnitsFromServer() {
     const res = await apiGet({ action: 'getUnits' });
     if (res.status === 'ok' && res.units && Object.keys(res.units).length) {
       UNITS = res.units;
-      // 重新渲染需要 UNITS 的 UI
+      // 重新渲染所有依賴 UNITS 的 UI
+      renderBrigadeGrid();
       populateLoginUnitSelect();
       const lastUnit = LS.get('myunit');
       if (lastUnit) {
@@ -986,6 +981,13 @@ function goTab(id) {
 function loadSettings(){}
 
 // ── 單位選擇器 ────────────────────────────────────────────────
+function renderBrigadeGrid() {
+  const grid = document.getElementById('brigade-grid');
+  if(!grid) return;
+  grid.innerHTML = Object.keys(UNITS).map(b =>
+    `<button type="button" class="brigade-btn" onclick="selectBrigade('${b}')">${b}</button>`
+  ).join('');
+}
 function selectBrigade(brigade) {
   document.querySelectorAll('.brigade-btn').forEach(b=>b.classList.toggle('active',b.textContent===brigade));
   const grid=document.getElementById('subunit-grid');
@@ -1009,8 +1011,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(subs.includes(lastUnit)){ selectBrigade(brigade); setTimeout(()=>selectSubunit(lastUnit),0); break; }
     }
   }
+  renderBrigadeGrid();   // 先用備援值渲染，避免按鈕空白
   checkApiStatus();
-  loadUnitsFromServer(); // 從 GAS units/accounts 分頁動態載入單位結構
+  loadUnitsFromServer(); // 從 GAS units/accounts 分頁動態載入單位結構，完成後再次渲染
   document.getElementById('today-badge').textContent=
     new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
   document.querySelectorAll('#sym-group input').forEach(cb=>{
