@@ -257,6 +257,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span id="today-badge"></span>
     <span id="api-status-badge" class="api-status checking">● 連線中</span>
+    <button class="btn btn-ghost" id="login-btn" onclick="showLoginModal()" style="font-size:12px;padding:4px 10px;border-radius:99px;">🔐 登入</button>
     <span class="user-badge" id="user-badge"></span>
     <button class="logout-btn" id="logout-btn" onclick="doLogout()">登出</button>
   </div>
@@ -417,7 +418,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       </div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-ghost" style="border-color:var(--amber-bd);color:var(--amber-text);" onclick="selectAllForBatch()">☑ 全選當日</button>
+      <button class="btn btn-ghost" style="border-color:var(--amber-bd);color:var(--amber-text);" onclick="selectAllForBatch()">☑ 全選全部</button>
       <button class="btn btn-ghost" style="border-color:var(--amber-bd);color:var(--amber-text);" onclick="deselectAllBatch()">☐ 取消全選</button>
       <button class="btn btn-primary" onclick="doBatchSign()">✅ 批次確認簽核</button>
     </div>
@@ -792,13 +793,19 @@ function doLogout() {
 }
 
 function updateUserDisplay() {
-  const badge  = document.getElementById('user-badge');
-  const logBtn = document.getElementById('logout-btn');
+  const badge    = document.getElementById('user-badge');
+  const logBtn   = document.getElementById('logout-btn');
+  const loginBtn = document.getElementById('login-btn');
   if(currentUser){
     badge.textContent = currentUser.unitName+'（'+(currentUser.role==='brigade'?'大隊':'分隊')+'）';
     badge.style.display=logBtn.style.display='';
+    if(loginBtn) loginBtn.style.display='none';
+    // 若填報表單尚未選單位，以登入帳號單位更新 topbar
+    const formUnit = document.getElementById('f-unit').value;
+    if(!formUnit) updateUnitDisplay(currentUser.unitName);
   } else {
     badge.style.display=logBtn.style.display='none';
+    if(loginBtn) loginBtn.style.display='';
   }
 }
 
@@ -1162,12 +1169,9 @@ async function doSign(id) {
 
 // ── 批次簽核 ──────────────────────────────────────────────────
 function selectAllForBatch() {
-  const date=document.getElementById('batch-date').value;
-  document.querySelectorAll('.batch-check').forEach(cb=>{
-    cb.checked = !date || cb.dataset.date===date;
-  });
+  document.querySelectorAll('.batch-check').forEach(cb=>{ cb.checked=true; });
   const count=document.querySelectorAll('.batch-check:checked').length;
-  toast(`已選取 ${count} 筆紀錄`);
+  toast(`已選取全部 ${count} 筆未批核紀錄`);
 }
 function deselectAllBatch(){
   document.querySelectorAll('.batch-check').forEach(cb=>cb.checked=false);
