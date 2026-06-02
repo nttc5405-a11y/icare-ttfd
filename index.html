@@ -238,6 +238,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .batch-check{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0;margin-top:3px;}
 .sup-card-inner{flex:1;min-width:0;}
 
+/* ── 即時燈號 & 欄位提示 ── */
+.field-hint{font-size:11px;color:var(--hint);margin-top:4px;line-height:1.7;}
+.field-hint b{font-weight:600;}
+.live-badge{font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;vertical-align:middle;margin-left:5px;}
+.live-badge.green{background:var(--green-bg);color:var(--green-text);}
+.live-badge.amber{background:var(--amber-bg);color:var(--amber-text);}
+.live-badge.red{background:var(--red-bg);color:var(--red-text);}
+.vital-ref-panel{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 13px;margin-bottom:12px;font-size:11px;line-height:2;}
+
 /* ── RWD ── */
 @media(max-width:600px){
   .form-grid,.ind-grid{grid-template-columns:1fr 1fr;}
@@ -308,27 +318,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   </div>
 
   <div class="card">
-    <div class="card-title">生理數值</div>
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+      生理數值
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:3px 10px;" onclick="toggleVitalRef()">❓ 判讀標準</button>
+    </div>
+    <div id="vital-ref-panel" class="vital-ref-panel" style="display:none;">
+      <div><b style="color:var(--green-text)">🟢 綠燈（正常）</b>　血壓 &lt;130/80　心率 60–100　血氧 ≥95%　體溫 &lt;37.5°C</div>
+      <div><b style="color:var(--amber-text)">🟡 黃燈（注意）</b>　血壓 140–159/90–99　心率 &lt;50 或 101–119　血氧 93–94%　體溫 37.5–37.9°C</div>
+      <div><b style="color:var(--red-text)">🔴 紅燈（異常）</b>　血壓 ≥160或&lt;90 / ≥100或&lt;60　心率 ≥120　血氧 ≤92%　體溫 ≥38.0 或 ≤35.5°C</div>
+    </div>
     <div class="form-grid">
       <div class="field">
-        <label>血壓 (mmHg)</label>
+        <label>血壓 (mmHg) <span class="live-badge" id="badge-bp" style="display:none;"></span></label>
         <div class="bp-row">
-          <input id="f-sbp" type="number" placeholder="收縮壓" style="width:90px">
+          <input id="f-sbp" type="number" placeholder="收縮壓" style="width:90px" oninput="updateLiveBadges()">
           <span class="bp-sep">/</span>
-          <input id="f-dbp" type="number" placeholder="舒張壓" style="width:90px">
+          <input id="f-dbp" type="number" placeholder="舒張壓" style="width:90px" oninput="updateLiveBadges()">
         </div>
+        <div class="field-hint">🟢 &lt;130/80　🟡 140–159 / 90–99　🔴 ≥160或&lt;90 / ≥100或&lt;60</div>
       </div>
       <div class="field">
-        <label>心率 (bpm)</label>
-        <input id="f-hr" type="number" placeholder="例：72">
+        <label>心率 (bpm) <span class="live-badge" id="badge-hr" style="display:none;"></span></label>
+        <input id="f-hr" type="number" placeholder="例：72" oninput="updateLiveBadges()">
+        <div class="field-hint">🟢 60–100　🟡 &lt;50 或 101–119　🔴 ≥120</div>
       </div>
       <div class="field">
-        <label>血氧 SpO₂ (%)</label>
-        <input id="f-spo2" type="number" placeholder="例：98">
+        <label>血氧 SpO₂ (%) <span class="live-badge" id="badge-spo2" style="display:none;"></span></label>
+        <input id="f-spo2" type="number" placeholder="例：98" oninput="updateLiveBadges()">
+        <div class="field-hint">🟢 ≥95　🟡 93–94　🔴 ≤92</div>
       </div>
       <div class="field">
-        <label>體溫 (℃)</label>
-        <input id="f-temp" type="number" step="0.1" placeholder="例：36.5">
+        <label>體溫 (℃) <span class="live-badge" id="badge-temp" style="display:none;"></span></label>
+        <input id="f-temp" type="number" step="0.1" placeholder="例：36.5" oninput="updateLiveBadges()">
+        <div class="field-hint">🟢 &lt;37.5°C　🟡 37.5–37.9°C　🔴 ≥38.0 或 ≤35.5°C</div>
       </div>
       <div class="field full">
         <label>疲勞程度（0＝無疲勞，5＝極度疲勞）</label>
@@ -648,14 +670,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 const GAS_URL   = 'https://script.google.com/macros/s/AKfycbyL8WZ-BEdlliidtlayL_5nlp4wZQ_zudjbyDLhf7RiUkSlV72KOZFD6kzTH4OaP6LFXg/exec';
 const GAS_TOKEN = 'icare_2025_CHANGE_ME';
 
-// ── 單位結構 ──────────────────────────────────────────────────
-const UNITS = {
+// ── 單位結構（預設值 / 離線備援）────────────────────────────
+// 正式資料由 GAS accounts/units 分頁管理；載入失敗時使用此備援
+const DEFAULT_UNITS = {
   '台東大隊': ['台東大隊','台東','救護','特搜','大豐','知本','卑南','南王','豐田','綠島','蘭嶼'],
   '關山大隊': ['關山大隊','鹿野','延平','關山','池上','海端'],
   '大武大隊': ['大武大隊','太麻里','金峰','大溪','大武','達仁'],
   '成功大隊': ['成功大隊','都蘭','東河','泰源','成功','長濱'],
   '局本部':   ['科技救災','安檢','指揮中心'],
 };
+let UNITS = { ...DEFAULT_UNITS };  // 動態，會被 loadUnitsFromServer() 覆寫
 
 // ── 處置選項 ──────────────────────────────────────────────────
 const DISPOSITION_OPTIONS = {
@@ -702,26 +726,36 @@ const LS = {
 // ══════════════════════════════════════════════════════════════
 // 帳號系統
 // ══════════════════════════════════════════════════════════════
-let currentUser  = null;
+let currentUser      = null;
 let settingsUnlocked = false;
-let pendingTab   = null;
+let pendingTab       = null;
 
-function getAccounts() {
-  const s = LS.get('accounts','');
-  if(s){ try{ return JSON.parse(s); }catch(e){} }
-  return buildDefaultAccounts();
-}
-function buildDefaultAccounts() {
-  const a = {};
-  Object.entries(UNITS).forEach(([brigade,subs])=>{
-    a[brigade] = { password:'0000', role:'brigade', brigade };
-    subs.forEach(sub=>{ if(sub!==brigade) a[sub]={password:'0000',role:'subunit',brigade,unit:sub}; });
-  });
-  return a;
-}
-function saveAccounts(a){ LS.set('accounts', JSON.stringify(a)); }
 function getAdminPwd(){ return LS.get('admin_pwd','admin0000'); }
 function saveAdminPwd(p){ LS.set('admin_pwd',p); }
+
+// ── 從 GAS 載入單位結構 ───────────────────────────────────────
+async function loadUnitsFromServer() {
+  try {
+    const res = await apiGet({ action: 'getUnits' });
+    if (res.status === 'ok' && res.units && Object.keys(res.units).length) {
+      UNITS = res.units;
+      // 重新渲染需要 UNITS 的 UI
+      populateLoginUnitSelect();
+      const lastUnit = LS.get('myunit');
+      if (lastUnit) {
+        for (const [brigade, subs] of Object.entries(UNITS)) {
+          if (subs.includes(lastUnit)) {
+            selectBrigade(brigade);
+            setTimeout(() => selectSubunit(lastUnit), 0);
+            break;
+          }
+        }
+      }
+    }
+  } catch(e) {
+    console.warn('載入單位結構失敗，使用預設值：', e.message);
+  }
+}
 
 function getVisibleUnits(account) {
   if(!account) return [];
@@ -761,26 +795,40 @@ function populateLoginUnitSelect() {
   });
 }
 
-function doLogin() {
+async function doLogin() {
   const unitName = document.getElementById('login-unit').value;
   const password = document.getElementById('login-pwd').value;
   const errEl    = document.getElementById('login-error');
+  const loginBtn = document.querySelector('#login-modal .btn-primary');
   errEl.style.display='none';
   if(!unitName){ errEl.textContent='請先選擇登入單位'; errEl.style.display=''; return; }
-  const accounts = getAccounts();
-  const account  = accounts[unitName];
-  if(!account){ errEl.textContent='找不到此單位帳號'; errEl.style.display=''; return; }
-  if(account.password!==password){
-    errEl.textContent='密碼錯誤，請再試一次'; errEl.style.display='';
-    document.getElementById('login-pwd').value='';
-    document.getElementById('login-pwd').focus(); return;
+  if(!password){ errEl.textContent='請輸入密碼'; errEl.style.display=''; return; }
+
+  // 呼叫 GAS 做密碼驗證（密碼不離開伺服器）
+  if(loginBtn) loginBtn.textContent='驗證中…';
+  try {
+    const res = await apiPost({ action:'login', unit:unitName, password });
+    if(res.status==='ok'){
+      const account = { role:res.role, brigade:res.brigade };
+      currentUser = { unitName, role:res.role, brigade:res.brigade, visibleUnits:getVisibleUnits(account) };
+      LS.set('currentUser', JSON.stringify(currentUser));
+      hideLoginModal();
+      updateUserDisplay();
+      loadUnitSelects();
+      if(pendingTab){ const t=pendingTab; pendingTab=null; goTab(t); }
+    } else {
+      const msg = res.message==='wrong_password' ? '密碼錯誤，請再試一次'
+                : res.message==='unit_not_found' ? '找不到此單位帳號'
+                : res.message;
+      errEl.textContent=msg; errEl.style.display='';
+      document.getElementById('login-pwd').value='';
+      document.getElementById('login-pwd').focus();
+    }
+  } catch(e) {
+    errEl.textContent='連線失敗，請確認網路或 GAS 設定：'+e.message; errEl.style.display='';
+  } finally {
+    if(loginBtn) loginBtn.textContent='登入系統';
   }
-  currentUser = { unitName, role:account.role, brigade:account.brigade, visibleUnits:getVisibleUnits(account) };
-  LS.set('currentUser', JSON.stringify(currentUser));
-  hideLoginModal();
-  updateUserDisplay();
-  loadUnitSelects();
-  if(pendingTab){ const t=pendingTab; pendingTab=null; goTab(t); }
 }
 
 function doLogout() {
@@ -841,49 +889,80 @@ function saveAdminPwdBtn() {
   toast('✓ 管理員密碼已更新');
 }
 
-// ── 帳號管理表格 ──────────────────────────────────────────────
-function buildAccountsTable() {
-  const accounts=getAccounts();
+// ── 帳號管理表格（從 GAS 讀取）──────────────────────────────
+async function buildAccountsTable() {
   const container=document.getElementById('accounts-container');
   if(!container) return;
-  let html='';
-  Object.entries(UNITS).forEach(([brigade,subs])=>{
-    html+=`<div class="acc-section"><div class="acc-brigade-header">🏢 ${brigade}</div>`;
-    const bk=encodeURIComponent(brigade);
-    const bAcc=accounts[brigade]||{password:'0000'};
-    html+=`<div class="acc-row">
-      <span class="acc-name" style="font-weight:700;">${brigade}</span>
-      <span class="acc-role-tag brigade">大隊帳號</span>
-      <input type="text" class="acc-pwd-input" id="acc-${bk}" value="${escHtml(bAcc.password)}" placeholder="密碼">
-    </div>`;
-    subs.forEach(sub=>{
-      if(sub===brigade) return;
-      const sk=encodeURIComponent(sub);
-      const sAcc=accounts[sub]||{password:'0000'};
-      html+=`<div class="acc-row" style="padding-left:14px;">
-        <span class="acc-name">└ ${sub}</span>
-        <span class="acc-role-tag subunit">分隊帳號</span>
-        <input type="text" class="acc-pwd-input" id="acc-${sk}" value="${escHtml(sAcc.password)}" placeholder="密碼">
-      </div>`;
+  container.innerHTML='<div class="empty-state">載入帳號資料中…</div>';
+  try {
+    const res = await apiGet({ action:'getAccounts' });
+    const accounts = res.accounts || [];
+    // 依 brigade 分群
+    const byBrigade = {};
+    accounts.forEach(a => {
+      const b = a.brigade || '其他';
+      if(!byBrigade[b]) byBrigade[b]=[];
+      byBrigade[b].push(a);
     });
-    html+='</div>';
-  });
-  container.innerHTML=html;
+    let html = `<p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+      💡 帳號結構請直接在 Google Sheets 的 <strong>units</strong>（單位）及 <strong>accounts</strong>（帳號）分頁調整。
+      這裡僅支援密碼快速修改；單位新增/刪除請至試算表編輯後重新整理頁面。</p>`;
+    Object.entries(byBrigade).forEach(([brigade, list]) => {
+      html += `<div class="acc-section"><div class="acc-brigade-header">🏢 ${brigade}</div>`;
+      list.forEach(a => {
+        const k = encodeURIComponent(a.unit);
+        const isBrigade = a.role==='brigade';
+        html += `<div class="acc-row" style="${isBrigade?'':'padding-left:14px;'}">
+          <span class="acc-name" style="${isBrigade?'font-weight:700;':''}">
+            ${isBrigade?'':'└ '}${escHtml(a.unit)}</span>
+          <span class="acc-role-tag ${isBrigade?'brigade':'subunit'}">${isBrigade?'大隊':'分隊'}</span>
+          <input type="text" class="acc-pwd-input" id="acc-${k}"
+            value="${escHtml(a.password)}" placeholder="密碼"
+            onchange="markPwdDirty('${k}')">
+          <button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;display:none;" id="save-${k}"
+            onclick="saveSinglePassword('${escHtml(a.unit)}','${k}')">儲存</button>
+        </div>`;
+      });
+      html += '</div>';
+    });
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
+  }
 }
-function saveAllPasswords() {
-  const accounts=getAccounts(); let changed=0;
-  Object.entries(UNITS).forEach(([brigade,subs])=>{
-    const bEl=document.getElementById('acc-'+encodeURIComponent(brigade));
-    if(bEl&&bEl.value.trim()){ if(!accounts[brigade]) accounts[brigade]={role:'brigade',brigade}; accounts[brigade].password=bEl.value.trim(); changed++; }
-    subs.forEach(sub=>{
-      if(sub===brigade) return;
-      const sEl=document.getElementById('acc-'+encodeURIComponent(sub));
-      if(sEl&&sEl.value.trim()){ if(!accounts[sub]) accounts[sub]={role:'subunit',brigade,unit:sub}; accounts[sub].password=sEl.value.trim(); changed++; }
-    });
-  });
-  saveAccounts(accounts);
-  showMsg('accounts-msg',`✓ 已儲存 ${changed} 個單位的密碼設定`);
-  toast('✓ 帳號密碼已更新');
+function markPwdDirty(k) {
+  const btn=document.getElementById('save-'+k);
+  if(btn) btn.style.display='';
+}
+async function saveSinglePassword(unit, k) {
+  const input=document.getElementById('acc-'+k);
+  const btn=document.getElementById('save-'+k);
+  if(!input||!input.value.trim()){ toast('密碼不可空白'); return; }
+  if(btn) btn.textContent='儲存中…';
+  try {
+    await apiPost({ action:'saveAccount', unit, password:input.value.trim() });
+    if(btn){ btn.textContent='✓'; setTimeout(()=>{ btn.textContent='儲存'; btn.style.display='none'; },1200); }
+    toast('✓ '+unit+' 密碼已更新');
+  } catch(e) {
+    if(btn) btn.textContent='儲存';
+    toast('儲存失敗：'+e.message);
+  }
+}
+// 保留相容舊 UI 按鈕
+async function saveAllPasswords() {
+  const inputs=document.querySelectorAll('.acc-pwd-input');
+  if(!inputs.length){ toast('尚無帳號資料'); return; }
+  showMsg('accounts-msg','⏳ 批次儲存中…');
+  let ok=0, fail=0;
+  for(const input of inputs){
+    const k=input.id.replace('acc-','');
+    const unit=decodeURIComponent(k);
+    if(!input.value.trim()) continue;
+    try{ await apiPost({action:'saveAccount',unit,password:input.value.trim()}); ok++; }
+    catch(e){ fail++; }
+  }
+  showMsg('accounts-msg', `✓ 已儲存 ${ok} 筆${fail?'、'+fail+' 筆失敗':''}`);
+  toast('✓ 帳號密碼批次更新完成');
 }
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -931,6 +1010,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   }
   checkApiStatus();
+  loadUnitsFromServer(); // 從 GAS units/accounts 分頁動態載入單位結構
   document.getElementById('today-badge').textContent=
     new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
   document.querySelectorAll('#sym-group input').forEach(cb=>{
@@ -1311,6 +1391,37 @@ async function loadTrend() {
         responsive:true,maintainAspectRatio:false}
     });
   }catch(e){ toast('趨勢圖載入失敗：'+e.message); }
+}
+
+// ── 即時燈號 & 判讀面板 ───────────────────────────────────────
+const LIVE_LABELS = {green:'🟢 正常', amber:'🟡 注意', red:'🔴 異常'};
+function setBadge(id, lvl) {
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(!lvl){ el.style.display='none'; return; }
+  el.className='live-badge '+lvl;
+  el.textContent=LIVE_LABELS[lvl];
+  el.style.display='';
+}
+function updateLiveBadges() {
+  const sbp=+document.getElementById('f-sbp').value;
+  const dbp=+document.getElementById('f-dbp').value;
+  const hr =+document.getElementById('f-hr').value;
+  const spo2=+document.getElementById('f-spo2').value;
+  const temp=+document.getElementById('f-temp').value;
+  // 血壓：取收縮/舒張較嚴的那個
+  if(sbp&&dbp){
+    const lvls=['red','amber','green'];
+    const bpLvl=lvls[Math.min(lvls.indexOf(indLevel('sbp',sbp)),lvls.indexOf(indLevel('dbp',dbp)))];
+    setBadge('badge-bp',bpLvl);
+  } else { setBadge('badge-bp',null); }
+  setBadge('badge-hr',  hr   ? indLevel('hr',hr)     : null);
+  setBadge('badge-spo2',spo2 ? indLevel('spo2',spo2) : null);
+  setBadge('badge-temp',temp ? indLevel('temp',temp)  : null);
+}
+function toggleVitalRef() {
+  const p=document.getElementById('vital-ref-panel');
+  p.style.display=p.style.display==='none'?'':'none';
 }
 
 // ── 工具 ──────────────────────────────────────────────────────
