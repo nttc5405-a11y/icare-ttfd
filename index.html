@@ -804,7 +804,7 @@ async function doLogin() {
   try {
     const res = await apiPost({ action:'login', unit:unitName, password });
     if(res.status==='ok'){
-      const account = { role:res.role, brigade:res.brigade };
+      const account = { role:res.role, brigade:res.brigade, unit:unitName };
       currentUser = { unitName, role:res.role, brigade:res.brigade, visibleUnits:getVisibleUnits(account) };
       LS.set('currentUser', JSON.stringify(currentUser));
       hideLoginModal();
