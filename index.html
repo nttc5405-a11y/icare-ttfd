@@ -269,7 +269,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <span id="api-status-badge" class="api-status checking">● 連線中</span>
     <button class="btn btn-ghost" id="login-btn" onclick="showLoginModal()" style="font-size:12px;padding:4px 10px;border-radius:99px;">🔐 登入</button>
     <span class="user-badge" id="user-badge"></span>
-    <button class="logout-btn" id="logout-btn" onclick="doLogout()">登出</button>
+    <button class="logout-btn" id="switch-btn" onclick="showLoginModal()" style="display:none;">🔄 切換帳號</button>
+    <button class="logout-btn" id="logout-btn" onclick="doLogout()" style="display:none;">登出</button>
   </div>
 </div>
 
@@ -278,8 +279,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <button class="nav-btn active" onclick="goTab('submit')">📋 勤前填報</button>
   <button class="nav-btn" onclick="goTab('ref')">📖 判讀參考</button>
   <button class="nav-btn" onclick="checkAndGoTab('supervisor')">✅ 主管審核<span class="lock-icon">🔒</span></button>
-  <button class="nav-btn" onclick="checkAndGoTab('history')">📂 歷史紀錄<span class="lock-icon">🔒</span></button>
-  <button class="nav-btn" onclick="checkAndGoTab('trend')">📈 趨勢分析<span class="lock-icon">🔒</span></button>
+  <button class="nav-btn" onclick="checkAndGoTab('history')">📊 歷史 &amp; 趨勢<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoSettings()">⚙️ 設定<span class="lock-icon">🔒</span></button>
 </div>
 
@@ -450,68 +450,68 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 </div>
 
 <!-- ══════════════════════════════════════════
-     TAB 3：歷史紀錄
+     TAB 3：歷史 & 趨勢（合併）
 ══════════════════════════════════════════ -->
 <div id="tab-history" style="display:none;">
+
+  <!-- 篩選列（精簡） -->
   <div class="card" style="margin-bottom:14px;">
-    <div class="card-title">篩選條件</div>
-    <div class="form-grid hist-filter-grid" style="grid-template-columns:1fr 1fr 1fr 1fr auto;">
-      <div class="field">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="field" style="flex:1;min-width:110px;">
         <label>日期起</label>
         <input id="hist-date-from" type="date">
       </div>
-      <div class="field">
+      <div class="field" style="flex:1;min-width:110px;">
         <label>日期迄</label>
         <input id="hist-date-to" type="date">
       </div>
-      <div class="field">
-        <label>單位篩選</label>
-        <select id="hist-unit"><option value="">全部單位</option></select>
+      <div class="field" style="flex:1;min-width:100px;">
+        <label>單位</label>
+        <select id="hist-unit"><option value="">全部</option></select>
       </div>
-      <div class="field">
-        <label>燈號篩選</label>
+      <div class="field" style="flex:1;min-width:90px;">
+        <label>燈號</label>
         <select id="hist-light">
           <option value="">全部</option>
-          <option value="red">🔴 紅燈</option>
-          <option value="amber">🟡 黃燈</option>
-          <option value="green">🟢 綠燈</option>
+          <option value="red">🔴 紅</option>
+          <option value="amber">🟡 黃</option>
+          <option value="green">🟢 綠</option>
         </select>
       </div>
-      <div class="field" style="justify-content:flex-end;">
-        <label style="opacity:0;">搜</label>
+      <div class="field">
+        <label style="opacity:0">搜</label>
         <button class="btn btn-primary" onclick="loadHistory()">搜尋</button>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="setHistToday()">今日</button>
-      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="setHistDays(7)">近 7 天</button>
-      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="setHistDays(30)">近 30 天</button>
-      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;" onclick="clearHistDate()">不限日期</button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+      <button class="btn btn-ghost" style="font-size:12px;padding:4px 11px;" onclick="setHistToday()">今日</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:4px 11px;" onclick="setHistDays(7)">近 7 天</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:4px 11px;" onclick="setHistDays(30)">近 30 天</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:4px 11px;" onclick="clearHistDate()">不限日期</button>
     </div>
   </div>
+
+  <!-- 圖表區（搜尋後顯示） -->
+  <div id="hist-charts" style="display:none;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-title">燈號分布</div>
+        <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-title">每日異常趨勢（紅＋黃）</div>
+        <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">各單位異常比較</div>
+      <div class="chart-wrap"><canvas id="chart-unit"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 紀錄表格 -->
   <div class="card">
     <div id="history-table"><div class="empty-state">請選擇篩選條件後點擊「搜尋」</div></div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════
-     TAB 4：趨勢分析
-══════════════════════════════════════════ -->
-<div id="tab-trend" style="display:none;">
-  <div class="card">
-    <div class="card-title">燈號分布（全部紀錄）</div>
-    <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
-  </div>
-  <div class="card">
-    <div class="card-title">每日異常趨勢（紅＋黃燈次數，近 14 天）</div>
-    <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
-  </div>
-  <div class="card">
-    <div class="card-title">各單位異常比較</div>
-    <div class="chart-wrap"><canvas id="chart-unit"></canvas></div>
-  </div>
-  <div style="text-align:center;margin-top:8px;">
-    <button class="btn btn-ghost" onclick="loadTrend()">↻ 重新整理圖表</button>
   </div>
 </div>
 
@@ -832,23 +832,26 @@ function doLogout() {
   updateUserDisplay();
   goTab('submit');
   toast('已登出系統');
-  showLoginModal();
 }
 
 function updateUserDisplay() {
-  const badge    = document.getElementById('user-badge');
-  const logBtn   = document.getElementById('logout-btn');
-  const loginBtn = document.getElementById('login-btn');
+  const badge     = document.getElementById('user-badge');
+  const logBtn    = document.getElementById('logout-btn');
+  const switchBtn = document.getElementById('switch-btn');
+  const loginBtn  = document.getElementById('login-btn');
   if(currentUser){
     badge.textContent = currentUser.unitName+'（'+(currentUser.role==='brigade'?'大隊':'分隊')+'）';
-    badge.style.display=logBtn.style.display='';
-    if(loginBtn) loginBtn.style.display='none';
-    // 若填報表單尚未選單位，以登入帳號單位更新 topbar
+    badge.style.display = '';
+    if(logBtn)    logBtn.style.display    = '';
+    if(switchBtn) switchBtn.style.display = '';
+    if(loginBtn)  loginBtn.style.display  = 'none';
     const formUnit = document.getElementById('f-unit').value;
     if(!formUnit) updateUnitDisplay(currentUser.unitName);
   } else {
-    badge.style.display=logBtn.style.display='none';
-    if(loginBtn) loginBtn.style.display='';
+    badge.style.display = 'none';
+    if(logBtn)    logBtn.style.display    = 'none';
+    if(switchBtn) switchBtn.style.display = 'none';
+    if(loginBtn)  loginBtn.style.display  = '';
   }
 }
 
@@ -969,12 +972,11 @@ function checkAndGoTab(id) {
 }
 
 // ── 分頁切換 ──────────────────────────────────────────────────
-const TABS = ['submit','ref','supervisor','history','trend','settings'];
+const TABS = ['submit','ref','supervisor','history','settings'];
 function goTab(id) {
   TABS.forEach(t=>{ document.getElementById('tab-'+t).style.display = t===id?'':'none'; });
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{ b.classList.toggle('active',TABS[i]===id); });
   if(id==='supervisor') loadSupervisor();
-  if(id==='trend')      loadTrend();
   if(id==='settings')   buildAccountsTable();
 }
 
@@ -1309,7 +1311,11 @@ async function loadHistory() {
     // 單位篩選
     if(unit) data=data.filter(r=>r.unit===unit);
 
-    if(!data.length){ document.getElementById('history-table').innerHTML='<div class="empty-state">查無符合紀錄</div>'; return; }
+    if(!data.length){
+      document.getElementById('history-table').innerHTML='<div class="empty-state">查無符合紀錄</div>';
+      renderCharts([]);
+      return;
+    }
 
     // 統計小結
     const total=data.length, reds=data.filter(r=>r.light==='red').length, ambers=data.filter(r=>r.light==='amber').length;
@@ -1320,6 +1326,7 @@ async function loadHistory() {
       <span style="color:var(--green-text);">🟢 綠燈 ${total-reds-ambers} 筆</span>
     </div>`;
 
+    renderCharts(data);
     document.getElementById('history-table').innerHTML=summary+`
       <div style="overflow-x:auto;">
       <table class="data-table">
@@ -1344,56 +1351,66 @@ async function loadHistory() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// 趨勢分析
+// 趨勢圖表（由 loadHistory 共用資料驅動）
 // ══════════════════════════════════════════════════════════════
 let chartPie=null,chartTrend=null,chartUnit=null;
-async function loadTrend() {
-  try{
-    const res=await apiGet({action:'getAll'});
-    const data=filterByUser(res.data||[]);
-    const counts={green:0,amber:0,red:0};
-    data.forEach(r=>counts[r.light]=(counts[r.light]||0)+1);
-    if(chartPie) chartPie.destroy();
-    chartPie=new Chart(document.getElementById('chart-pie'),{
-      type:'doughnut',
-      data:{labels:['🟢 綠燈','🟡 黃燈','🔴 紅燈'],
-        datasets:[{data:[counts.green,counts.amber,counts.red],backgroundColor:['#639922','#BA7517','#A32D2D'],borderWidth:0}]},
-      options:{plugins:{legend:{position:'bottom',labels:{color:'#888',font:{size:12}}}},cutout:'55%'}
-    });
-    const byDay={};
-    data.forEach(r=>{
-      const day=tsDate(r.timestamp);
-      if(!byDay[day]) byDay[day]={green:0,amber:0,red:0};
-      byDay[day][r.light]=(byDay[day][r.light]||0)+1;
-    });
-    const days=Object.keys(byDay).sort().slice(-14);
-    if(chartTrend) chartTrend.destroy();
-    chartTrend=new Chart(document.getElementById('chart-trend'),{
-      type:'bar',
-      data:{labels:days,datasets:[
-        {label:'🔴 紅燈',data:days.map(d=>byDay[d].red),backgroundColor:'#f09595'},
-        {label:'🟡 黃燈',data:days.map(d=>byDay[d].amber),backgroundColor:'#FAC775'},
-      ]},
-      options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
-        scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
-        responsive:true,maintainAspectRatio:false}
-    });
-    const byUnit={};
-    data.forEach(r=>{ const u=r.unit||'未知'; if(!byUnit[u]) byUnit[u]={green:0,amber:0,red:0}; byUnit[u][r.light]=(byUnit[u][r.light]||0)+1; });
-    const units=Object.keys(byUnit);
-    if(chartUnit) chartUnit.destroy();
-    chartUnit=new Chart(document.getElementById('chart-unit'),{
-      type:'bar',
-      data:{labels:units,datasets:[
-        {label:'🔴 紅燈',data:units.map(u=>byUnit[u].red),backgroundColor:'#f09595'},
-        {label:'🟡 黃燈',data:units.map(u=>byUnit[u].amber),backgroundColor:'#FAC775'},
-        {label:'🟢 綠燈',data:units.map(u=>byUnit[u].green),backgroundColor:'#97C459'},
-      ]},
-      options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
-        scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
-        responsive:true,maintainAspectRatio:false}
-    });
-  }catch(e){ toast('趨勢圖載入失敗：'+e.message); }
+
+function renderCharts(data) {
+  if(!data||!data.length){ document.getElementById('hist-charts').style.display='none'; return; }
+  document.getElementById('hist-charts').style.display='';
+
+  // 燈號分布
+  const counts={green:0,amber:0,red:0};
+  data.forEach(r=>counts[r.light]=(counts[r.light]||0)+1);
+  if(chartPie) chartPie.destroy();
+  chartPie=new Chart(document.getElementById('chart-pie'),{
+    type:'doughnut',
+    data:{labels:['🟢 綠燈','🟡 黃燈','🔴 紅燈'],
+      datasets:[{data:[counts.green,counts.amber,counts.red],
+        backgroundColor:['#639922','#BA7517','#A32D2D'],borderWidth:0}]},
+    options:{plugins:{legend:{position:'bottom',labels:{color:'#888',font:{size:12}}}},cutout:'55%'}
+  });
+
+  // 每日趨勢
+  const byDay={};
+  data.forEach(r=>{
+    const day=tsDate(r.timestamp);
+    if(!byDay[day]) byDay[day]={green:0,amber:0,red:0};
+    byDay[day][r.light]=(byDay[day][r.light]||0)+1;
+  });
+  const days=Object.keys(byDay).sort();
+  if(chartTrend) chartTrend.destroy();
+  chartTrend=new Chart(document.getElementById('chart-trend'),{
+    type:'bar',
+    data:{labels:days,datasets:[
+      {label:'🔴 紅燈',data:days.map(d=>byDay[d].red||0),backgroundColor:'#f09595'},
+      {label:'🟡 黃燈',data:days.map(d=>byDay[d].amber||0),backgroundColor:'#FAC775'},
+    ]},
+    options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
+      scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
+      responsive:true,maintainAspectRatio:false}
+  });
+
+  // 各單位比較
+  const byUnit={};
+  data.forEach(r=>{
+    const u=r.unit||'未知';
+    if(!byUnit[u]) byUnit[u]={green:0,amber:0,red:0};
+    byUnit[u][r.light]=(byUnit[u][r.light]||0)+1;
+  });
+  const units=Object.keys(byUnit);
+  if(chartUnit) chartUnit.destroy();
+  chartUnit=new Chart(document.getElementById('chart-unit'),{
+    type:'bar',
+    data:{labels:units,datasets:[
+      {label:'🔴 紅燈',data:units.map(u=>byUnit[u].red||0),backgroundColor:'#f09595'},
+      {label:'🟡 黃燈',data:units.map(u=>byUnit[u].amber||0),backgroundColor:'#FAC775'},
+      {label:'🟢 綠燈',data:units.map(u=>byUnit[u].green||0),backgroundColor:'#97C459'},
+    ]},
+    options:{plugins:{legend:{labels:{color:'#888',font:{size:12}}}},
+      scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
+      responsive:true,maintainAspectRatio:false}
+  });
 }
 
 // ── 即時燈號 & 判讀面板 ───────────────────────────────────────
