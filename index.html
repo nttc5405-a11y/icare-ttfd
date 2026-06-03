@@ -841,9 +841,9 @@ function updateUserDisplay() {
   const loginBtn  = document.getElementById('login-btn');
   if(currentUser){
     badge.textContent = currentUser.unitName+'（'+(currentUser.role==='brigade'?'大隊':'分隊')+'）';
-    badge.style.display = '';
-    if(logBtn)    logBtn.style.display    = '';
-    if(switchBtn) switchBtn.style.display = '';
+    badge.style.display = 'inline-flex';
+    if(logBtn)    logBtn.style.display    = 'inline-block';
+    if(switchBtn) switchBtn.style.display = 'inline-block';
     if(loginBtn)  loginBtn.style.display  = 'none';
     const formUnit = document.getElementById('f-unit').value;
     if(!formUnit) updateUnitDisplay(currentUser.unitName);
@@ -851,7 +851,7 @@ function updateUserDisplay() {
     badge.style.display = 'none';
     if(logBtn)    logBtn.style.display    = 'none';
     if(switchBtn) switchBtn.style.display = 'none';
-    if(loginBtn)  loginBtn.style.display  = '';
+    if(loginBtn)  loginBtn.style.display  = 'inline-block';
   }
 }
 
