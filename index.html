@@ -279,6 +279,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <span id="today-badge"></span>
     <button id="theme-toggle-btn" onclick="toggleTheme()">🌙 深色</button>
     <span id="api-status-badge" class="api-status checking">● 連線中</span>
+    <span id="quota-badge" style="font-size:11px;color:var(--muted);display:none;"></span>
     <button class="btn btn-ghost" id="login-btn" onclick="showLoginModal()" style="font-size:12px;padding:4px 10px;border-radius:99px;">🔐 登入</button>
     <span class="user-badge" id="user-badge"></span>
     <button class="logout-btn" id="switch-btn" onclick="showLoginModal()" style="display:none;">🔄 切換帳號</button>
@@ -495,12 +496,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
         <button class="btn btn-primary" onclick="loadHistory()">搜尋</button>
       </div>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center;">
       <button class="btn btn-ghost" style="font-size:12px;padding:4px 11px;" onclick="setHistToday()">今日</button>
       <button class="btn btn-ghost" style="font-size:12px;padding:4px 11px;" onclick="setHistDays(7)">近 7 天</button>
       <button class="btn btn-ghost" style="font-size:12px;padding:4px 11px;" onclick="setHistDays(30)">近 30 天</button>
-      <button class="btn btn-ghost" style="font-size:12px;padding:4px 11px;" onclick="clearHistDate()">不限日期</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:4px;">⏱ 查詢上限 30 天｜完整查詢請至 ⚙️ 設定頁</span>
     </div>
+    <p id="hist-range-err" style="font-size:12px;color:var(--red-text);margin-top:8px;display:none;"></p>
   </div>
 
   <!-- 圖表區（搜尋後顯示） -->
@@ -625,6 +627,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     </div>
   </div>
 
+  <!-- ── 管理員完整資料查詢 ─────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">📊 完整資料查詢（管理員專用）</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+      不受 30 天限制，可跨日期、跨單位查詢所有歷史填報紀錄。
+    </p>
+    <div class="form-grid">
+      <div class="field">
+        <label>日期起</label>
+        <input id="admin-date-from" type="date">
+      </div>
+      <div class="field">
+        <label>日期迄</label>
+        <input id="admin-date-to" type="date">
+      </div>
+      <div class="field">
+        <label>單位</label>
+        <select id="admin-unit"><option value="">全部單位</option></select>
+      </div>
+      <div class="field">
+        <label>燈號</label>
+        <select id="admin-light">
+          <option value="">全部</option>
+          <option value="red">🔴 紅燈</option>
+          <option value="amber">🟡 黃燈</option>
+          <option value="green">🟢 綠燈</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>姓名關鍵字</label>
+        <input id="admin-name" type="text" placeholder="模糊搜尋">
+      </div>
+      <div class="field">
+        <label>簽核狀態</label>
+        <select id="admin-signed">
+          <option value="">全部</option>
+          <option value="false">⬜ 未簽核</option>
+          <option value="true">✅ 已簽核</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminDays(7)">近 7 天</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminDays(30)">近 30 天</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminDays(90)">近 90 天</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminDays(0)">全部（不限）</button>
+      <button class="btn btn-primary" onclick="loadAdminHistory()">🔍 搜尋</button>
+    </div>
+    <p id="admin-query-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
+    <div id="admin-history-table" style="margin-top:14px;"></div>
+  </div>
+
   <div class="card">
     <div class="card-title">部署說明</div>
     <ol style="font-size:13px;line-height:2;color:var(--muted);padding-left:16px;">
@@ -664,8 +718,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       onkeydown="if(event.key==='Enter')doSettingsLogin()">
     <div class="pwd-err" id="settings-pwd-error">密碼錯誤，請再試一次</div>
     <div style="display:flex;gap:8px;margin-top:4px;">
-      <button class="btn btn-primary" style="flex:1;" onclick="doSettingsLogin()">確認</button>
-      <button class="btn btn-ghost" onclick="closeSettingsModal()">取消</button>
+      <button type="button" class="btn btn-primary" style="flex:1;" onclick="doSettingsLogin()">確認</button>
+      <button type="button" class="btn btn-ghost" onclick="closeSettingsModal()">取消</button>
     </div>
   </div>
 </div>
@@ -726,8 +780,8 @@ function getDisposition(id) {
 
 // ── localStorage 封裝 ─────────────────────────────────────────
 const LS = {
-  get: (k,d='') => localStorage.getItem('icare_'+k) ?? d,
-  set: (k,v)    => localStorage.setItem('icare_'+k, v),
+  get: (k,d='') => { try{ return localStorage.getItem('icare_'+k) ?? d; }catch(e){ return d; } },
+  set: (k,v)    => { try{ localStorage.setItem('icare_'+k, v); }catch(e){} },
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -737,7 +791,7 @@ let currentUser      = null;
 let settingsUnlocked = false;
 let pendingTab       = null;
 
-function getAdminPwd(){ return LS.get('admin_pwd','admin0000'); }
+function getAdminPwd(){ return LS.get('admin_pwd','') || 'admin0000'; }
 function saveAdminPwd(p){ LS.set('admin_pwd',p); }
 
 // ── 從 GAS 載入單位結構 ───────────────────────────────────────
@@ -882,15 +936,20 @@ function checkAndGoSettings() {
 }
 function closeSettingsModal(){ document.getElementById('settings-modal').classList.remove('show'); }
 function doSettingsLogin() {
-  const entered=document.getElementById('settings-pwd-input').value;
-  if(entered===getAdminPwd()){
-    settingsUnlocked=true;
-    document.getElementById('settings-modal').classList.remove('show');
-    goTab('settings');
-  } else {
+  try {
+    const entered=document.getElementById('settings-pwd-input').value;
+    if(entered===getAdminPwd()){
+      settingsUnlocked=true;
+      document.getElementById('settings-modal').classList.remove('show');
+      goTab('settings');
+    } else {
+      document.getElementById('settings-pwd-error').style.display='';
+      document.getElementById('settings-pwd-input').value='';
+      document.getElementById('settings-pwd-input').focus();
+    }
+  } catch(e) {
+    document.getElementById('settings-pwd-error').textContent='發生錯誤：'+e.message;
     document.getElementById('settings-pwd-error').style.display='';
-    document.getElementById('settings-pwd-input').value='';
-    document.getElementById('settings-pwd-input').focus();
   }
 }
 function saveAdminPwdBtn() {
@@ -991,7 +1050,7 @@ function goTab(id) {
   TABS.forEach(t=>{ document.getElementById('tab-'+t).style.display = t===id?'':'none'; });
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{ b.classList.toggle('active',TABS[i]===id); });
   if(id==='supervisor') loadSupervisor();
-  if(id==='settings')   buildAccountsTable();
+  if(id==='settings'){ buildAccountsTable(); populateAdminUnits(); setAdminDays(30); }
 }
 
 function loadSettings(){}
@@ -1049,21 +1108,84 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 還原登入狀態
   const stored=LS.get('currentUser','');
   if(stored){ try{ currentUser=JSON.parse(stored); updateUserDisplay(); loadUnitSelects(); }catch(e){ currentUser=null; } }
+  // 限制 3：啟動配額監控，每分鐘更新一次
+  checkQuota();
+  setInterval(checkQuota, 60000);
 });
 
-// ── API ───────────────────────────────────────────────────────
-async function apiGet(params) {
+// ── 限制 1：請求佇列（同時最多 3 個，其餘自動排隊）─────────
+const RequestQueue = {
+  _queue: [], _running: 0, _concurrency: 3,
+  add(fn) {
+    return new Promise((resolve, reject) => {
+      this._queue.push({ fn, resolve, reject });
+      this._run();
+    });
+  },
+  _run() {
+    while (this._running < this._concurrency && this._queue.length) {
+      const { fn, resolve, reject } = this._queue.shift();
+      this._running++;
+      fn().then(resolve).catch(reject).finally(() => { this._running--; this._run(); });
+    }
+  },
+  get pending() { return this._queue.length; }
+};
+
+// ── API（15 秒 timeout）────────────────────────────────────
+function fetchWithTimeout(url, opts={}, ms=15000) {
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),ms);
+  return fetch(url,{...opts,signal:ctrl.signal}).finally(()=>clearTimeout(tid));
+}
+async function _rawApiGet(params) {
   const q=new URLSearchParams({token:GAS_TOKEN,...params});
-  const r=await fetch(`${GAS_URL}?${q}`);
+  const r=await fetchWithTimeout(`${GAS_URL}?${q}`);
   const j=await r.json();
   if(j.status==='error') throw new Error(j.message);
   return j;
 }
-async function apiPost(body) {
-  const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({token:GAS_TOKEN,...body})});
+async function _rawApiPost(body) {
+  const r=await fetchWithTimeout(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({token:GAS_TOKEN,...body})});
   const j=await r.json();
   if(j.status==='error') throw new Error(j.message);
   return j;
+}
+
+// 限制 1 + 自動重試（失敗最多重試 3 次，間隔 2/4 秒）
+async function apiGet(params) {
+  return RequestQueue.add(async () => {
+    for (let i=0; i<3; i++) {
+      try { return await _rawApiGet(params); }
+      catch(e) { if(i===2) throw e; await new Promise(r=>setTimeout(r,(i+1)*2000)); }
+    }
+  });
+}
+async function apiPost(body) {
+  return RequestQueue.add(async () => {
+    for (let i=0; i<3; i++) {
+      try { return await _rawApiPost(body); }
+      catch(e) { if(i===2) throw e; await new Promise(r=>setTimeout(r,(i+1)*2000)); }
+    }
+  });
+}
+
+// ── 限制 3：配額監控（不走佇列，每分鐘輪詢）──────────────
+async function checkQuota() {
+  try {
+    const res=await _rawApiGet({action:'getQuota'});
+    const used=res.usedSeconds||0;
+    const limit=6*3600;
+    const remaining=Math.max(0,limit-used);
+    const hh=Math.floor(remaining/3600);
+    const mm=Math.floor((remaining%3600)/60);
+    const pct=used/limit*100;
+    const badge=document.getElementById('quota-badge');
+    badge.textContent=`配額剩餘 ${hh}h${mm}m`;
+    badge.style.color=pct>80?'var(--red-text)':pct>50?'var(--amber-text)':'var(--muted)';
+    badge.style.display='';
+    if(pct>80) toast(`⚠️ GAS 配額警告：今日剩餘 ${hh}h${mm}m，請留意使用量`);
+  } catch(e) {}
 }
 function applyTheme(theme){
   document.documentElement.setAttribute('data-theme',theme);
@@ -1142,6 +1264,95 @@ function setHistDays(n){
 function clearHistDate(){
   document.getElementById('hist-date-from').value='';
   document.getElementById('hist-date-to').value='';
+}
+
+// ── 管理員完整查詢（設定頁，無 30 天限制）────────────────────
+function setAdminDays(n){
+  const to=new Date(Date.now()+8*60*60*1000);
+  document.getElementById('admin-date-to').value=to.toISOString().split('T')[0];
+  if(n===0){
+    document.getElementById('admin-date-from').value='';
+  } else {
+    const from=new Date(Date.now()+8*60*60*1000);
+    from.setDate(from.getDate()-n+1);
+    document.getElementById('admin-date-from').value=from.toISOString().split('T')[0];
+  }
+}
+
+function populateAdminUnits(){
+  const sel=document.getElementById('admin-unit');
+  if(!sel) return;
+  sel.innerHTML='<option value="">全部單位</option>';
+  Object.entries(UNITS).forEach(([brigade,subs])=>{
+    const grp=document.createElement('optgroup'); grp.label=brigade;
+    subs.forEach(u=>{ const o=document.createElement('option'); o.value=o.textContent=u; grp.appendChild(o); });
+    sel.appendChild(grp);
+  });
+}
+
+async function loadAdminHistory(){
+  const msg=document.getElementById('admin-query-msg');
+  const container=document.getElementById('admin-history-table');
+  msg.style.display='none';
+  container.innerHTML='<div class="empty-state">載入中…</div>';
+
+  const dateFrom=document.getElementById('admin-date-from').value;
+  const dateTo  =document.getElementById('admin-date-to').value;
+  const unit    =document.getElementById('admin-unit').value;
+  const light   =document.getElementById('admin-light').value;
+  const name    =document.getElementById('admin-name').value.trim();
+  const signed  =document.getElementById('admin-signed').value;
+
+  try{
+    const params={action:'getAll'};
+    if(light)    params.light    = light;
+    if(dateFrom) params.dateFrom = dateFrom;
+    if(dateTo)   params.dateTo   = dateTo;
+    if(unit)     params.unit     = unit;
+    const res=await apiGet(params);
+    let data=res.data||[];
+
+    // 前端補充篩選（姓名、簽核狀態 GAS 未支援）
+    if(name)   data=data.filter(r=>String(r.name||'').includes(name));
+    if(signed) data=data.filter(r=>String(r.signed)===signed);
+
+    if(!data.length){
+      container.innerHTML='<div class="empty-state">查無符合紀錄</div>';
+      msg.textContent='查無資料'; msg.style.display='';
+      return;
+    }
+
+    const reds=data.filter(r=>r.light==='red').length;
+    const ambers=data.filter(r=>r.light==='amber').length;
+    msg.textContent=`共 ${data.length} 筆｜🔴 ${reds} 筆　🟡 ${ambers} 筆　🟢 ${data.length-reds-ambers} 筆`;
+    msg.style.display='';
+
+    const rows=data.map(r=>{
+      const le=r.light==='red'?'🔴':r.light==='amber'?'🟡':'🟢';
+      const sg=String(r.signed)==='true'?`✅ ${r.signer||''}`:' — ';
+      return `<tr>
+        <td style="white-space:nowrap;font-size:11px;">${r.shift||tsDate(r.timestamp)}</td>
+        <td style="font-weight:600;">${r.name||'—'}</td>
+        <td style="font-size:12px;">${r.unit||'—'}</td>
+        <td>${le}</td>
+        <td>${r.sbp}/${r.dbp}</td><td>${r.hr}</td>
+        <td>${r.spo2}%</td><td>${r.temp}℃</td>
+        <td style="font-size:12px;">${sg}</td>
+      </tr>`;
+    }).join('');
+
+    container.innerHTML=`<div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr>
+          <th>日期</th><th>姓名</th><th>單位</th><th>燈號</th>
+          <th>血壓</th><th>心率</th><th>血氧</th><th>體溫</th><th>簽核</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }catch(e){
+    container.innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
+  }
 }
 
 // ── 燈號判定 ──────────────────────────────────────────────────
@@ -1325,26 +1536,40 @@ async function doBatchSign() {
 // 歷史紀錄（含日期篩選）
 // ══════════════════════════════════════════════════════════════
 async function loadHistory() {
-  document.getElementById('history-table').innerHTML='<div class="empty-state">載入中…</div>';
-  const dateFrom = document.getElementById('hist-date-from').value;  // "2026-05-27"
+  const errEl=document.getElementById('hist-range-err');
+  errEl.style.display='none';
+  const dateFrom = document.getElementById('hist-date-from').value;
   const dateTo   = document.getElementById('hist-date-to').value;
   const unit     = document.getElementById('hist-unit').value;
   const light    = document.getElementById('hist-light').value;
+
+  // ── 30 天上限驗證 ──────────────────────────────────────────
+  if(dateFrom && dateTo){
+    const diff=(new Date(dateTo)-new Date(dateFrom))/(1000*60*60*24);
+    if(diff>30){
+      errEl.textContent=`⚠️ 查詢區間 ${Math.round(diff)} 天，超過 30 天上限。請縮短範圍，或至 ⚙️ 設定頁使用管理員完整查詢。`;
+      errEl.style.display='';
+      document.getElementById('history-table').innerHTML='<div class="empty-state">請調整日期範圍後再搜尋</div>';
+      return;
+    }
+  }
+  if(!dateFrom && !dateTo){
+    errEl.textContent='⚠️ 請選擇查詢日期範圍（上限 30 天）。';
+    errEl.style.display='';
+    document.getElementById('history-table').innerHTML='<div class="empty-state">請選擇日期範圍後搜尋</div>';
+    return;
+  }
+
+  document.getElementById('history-table').innerHTML='<div class="empty-state">載入中…</div>';
   try{
+    // 把日期範圍傳給 GAS，讓後端先篩，減少資料傳輸量
     const params={action:'getAll'};
-    if(light) params.light=light;
+    if(light)    params.light    = light;
+    if(dateFrom) params.dateFrom = dateFrom;
+    if(dateTo)   params.dateTo   = dateTo;
+    if(unit)     params.unit     = unit;
     const res=await apiGet(params);
     let data=filterByUser(res.data||[]);
-
-    // 日期篩選：兩邊統一用 ISO "yyyy-MM-dd" 比對
-    if(dateFrom){
-      data=data.filter(r=>tsDate(r.timestamp)>=dateFrom);
-    }
-    if(dateTo){
-      data=data.filter(r=>tsDate(r.timestamp)<=dateTo);
-    }
-    // 單位篩選
-    if(unit) data=data.filter(r=>r.unit===unit);
 
     if(!data.length){
       document.getElementById('history-table').innerHTML='<div class="empty-state">查無符合紀錄</div>';
