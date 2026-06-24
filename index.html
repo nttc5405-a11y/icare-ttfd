@@ -1108,9 +1108,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 還原登入狀態
   const stored=LS.get('currentUser','');
   if(stored){ try{ currentUser=JSON.parse(stored); updateUserDisplay(); loadUnitSelects(); }catch(e){ currentUser=null; } }
-  // 限制 3：啟動配額監控，每分鐘更新一次
+  // 配額監控：改為 10 分鐘一次，避免背景請求干擾填報速度
   checkQuota();
-  setInterval(checkQuota, 60000);
+  setInterval(checkQuota, 600000);
 });
 
 // ── 限制 1：請求佇列（同時最多 3 個，其餘自動排隊）─────────
@@ -1170,10 +1170,10 @@ async function apiPost(body) {
   });
 }
 
-// ── 限制 3：配額監控（不走佇列，每分鐘輪詢）──────────────
+// ── 配額監控（走佇列，避免在填報/簽核高峰時插隊）──────────
 async function checkQuota() {
   try {
-    const res=await _rawApiGet({action:'getQuota'});
+    const res=await RequestQueue.add(()=>_rawApiGet({action:'getQuota'}));
     const used=res.usedSeconds||0;
     const limit=6*3600;
     const remaining=Math.max(0,limit-used);
@@ -1517,18 +1517,17 @@ async function doBatchSign() {
   const checked=Array.from(document.querySelectorAll('.batch-check:checked')).map(c=>c.value);
   if(!checked.length){ errMsg.textContent='⚠️ 請先勾選要批次簽核的紀錄'; errMsg.style.display=''; return; }
 
-  errMsg.textContent=`⏳ 批次簽核中（0 / ${checked.length}）…`; errMsg.style.display='';
-  let success=0, fail=0;
-  for(const id of checked){
-    try{
-      await apiPost({action:'sign',id,signer,disposition:disp});
-      document.getElementById('card-'+id).style.display='none';
-      success++;
-      errMsg.textContent=`⏳ 批次簽核中（${success} / ${checked.length}）…`;
-    }catch(e){ fail++; console.warn('批次簽核失敗:',id,e); }
+  errMsg.textContent=`⏳ 批次簽核中（共 ${checked.length} 筆）…`; errMsg.style.display='';
+  try{
+    const res=await apiPost({action:'batchSign',ids:checked,signer,disposition:disp});
+    const success=res.signed||checked.length;
+    checked.forEach(id=>{ const el=document.getElementById('card-'+id); if(el) el.style.display='none'; });
+    errMsg.textContent=`✓ 批次簽核完成：${success} 筆成功`;
+    toast(`✓ 批次簽核 ${success} 筆完成`);
+  }catch(e){
+    errMsg.textContent=`✗ 批次簽核失敗：${e.message}`;
+    toast('批次簽核失敗，請重試');
   }
-  errMsg.textContent=`✓ 批次簽核完成：${success} 筆成功${fail?'、'+fail+' 筆失敗':''}`;
-  toast(`✓ 批次簽核 ${success} 筆完成`);
   setTimeout(()=>loadSupervisor(), 2000);
 }
 
