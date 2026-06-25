@@ -614,7 +614,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <div class="setting-row">
       <div>
         <div class="setting-label">更改管理員密碼</div>
-        <div class="setting-hint">進入設定頁面所需的密碼（預設：<code>admin0000</code>）</div>
+        <div class="setting-hint">進入設定頁面所需的密碼</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <input id="cfg-admin-pwd" type="password" placeholder="輸入新管理員密碼"
@@ -864,8 +864,8 @@ async function doLogin() {
   const errEl    = document.getElementById('login-error');
   const loginBtn = document.querySelector('#login-modal .btn-primary');
   errEl.style.display='none';
-  if(!unitName){ errEl.textContent='請先選擇登入單位'; errEl.style.display=''; return; }
-  if(!password){ errEl.textContent='請輸入密碼'; errEl.style.display=''; return; }
+  if(!unitName){ errEl.textContent='請先選擇登入單位'; errEl.style.display='block'; return; }
+  if(!password){ errEl.textContent='請輸入密碼'; errEl.style.display='block'; return; }
 
   // 呼叫 GAS 做密碼驗證（密碼不離開伺服器）
   if(loginBtn) loginBtn.textContent='驗證中…';
@@ -883,12 +883,12 @@ async function doLogin() {
       const msg = res.message==='wrong_password' ? '密碼錯誤，請再試一次'
                 : res.message==='unit_not_found' ? '找不到此單位帳號'
                 : res.message;
-      errEl.textContent=msg; errEl.style.display='';
+      errEl.textContent=msg; errEl.style.display='block';
       document.getElementById('login-pwd').value='';
       document.getElementById('login-pwd').focus();
     }
   } catch(e) {
-    errEl.textContent='連線失敗，請確認網路或 GAS 設定：'+e.message; errEl.style.display='';
+    errEl.textContent='連線失敗，請確認網路或 GAS 設定：'+e.message; errEl.style.display='block';
   } finally {
     if(loginBtn) loginBtn.textContent='登入系統';
   }
@@ -943,13 +943,13 @@ function doSettingsLogin() {
       document.getElementById('settings-modal').classList.remove('show');
       goTab('settings');
     } else {
-      document.getElementById('settings-pwd-error').style.display='';
+      document.getElementById('settings-pwd-error').style.display='block';
       document.getElementById('settings-pwd-input').value='';
       document.getElementById('settings-pwd-input').focus();
     }
   } catch(e) {
     document.getElementById('settings-pwd-error').textContent='發生錯誤：'+e.message;
-    document.getElementById('settings-pwd-error').style.display='';
+    document.getElementById('settings-pwd-error').style.display='block';
   }
 }
 function saveAdminPwdBtn() {
