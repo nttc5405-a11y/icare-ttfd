@@ -756,8 +756,8 @@ const DEFAULT_UNITS = {
 };
 let UNITS = { ...DEFAULT_UNITS };  // 動態，會被 loadUnitsFromServer() 覆寫
 
-// ── 處置選項 ──────────────────────────────────────────────────
-const DISPOSITION_OPTIONS = {
+// ── 處置選項（預設值，頁面載入後由 GAS dispositions 分頁覆寫）──
+let DISPOSITION_OPTIONS = {
   green: ['正常出勤','自主注意：補充水分、注意保暖，加強自主管理','建議諮詢醫療或衛教建議'],
   amber: ['安排靜態休息 15-30 分鐘後複測','複測後恢復正常出勤，加強自主管理',
     '彈性調整勤務：值班台','彈性調整勤務：水源車操作','彈性調整勤務：消防安全檢查',
@@ -766,6 +766,14 @@ const DISPOSITION_OPTIONS = {
     '複測仍紅燈：暫緩派遣，立即協助就醫','危險徵兆（胸痛/呼吸困難/意識改變）：立即通報，緊急送醫',
     '複測後彈性調整勤務：後勤支援工作','複測後彈性調整勤務：行政工作','複測後彈性調整勤務：待命'],
 };
+async function loadDispositionsFromServer() {
+  try {
+    const res = await apiGet({ action: 'getDispositions' });
+    if (res.status === 'ok' && res.dispositions) {
+      DISPOSITION_OPTIONS = res.dispositions;
+    }
+  } catch(e) { /* 失敗時沿用上方預設值，不影響操作 */ }
+}
 
 function dispositionSelect(id, light) {
   const opts = DISPOSITION_OPTIONS[light] || DISPOSITION_OPTIONS.green;
@@ -1143,6 +1151,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   renderBrigadeGrid();   // 先用備援值渲染，避免按鈕空白
   updateSupervisorDatalist();
+  loadDispositionsFromServer();
+  loadCriteriaFromServer();
   checkApiStatus();
   loadUnitsFromServer(); // 從 GAS units/accounts 分頁動態載入單位結構，完成後再次渲染
   document.getElementById('today-badge').textContent=
@@ -1552,25 +1562,39 @@ function renderAdminDashboard(data) {
 }
 
 // ── 燈號判定 ──────────────────────────────────────────────────
+// ── 燈號判定標準（預設值，頁面載入後由 GAS criteria 分頁覆寫）──
+let CRITERIA = {
+  sbp:  { red_high:160,  red_low:90,   amber_high:140,  amber_low:null },
+  dbp:  { red_high:100,  red_low:60,   amber_high:90,   amber_low:null },
+  hr:   { red_high:120,  red_low:null, amber_high:101,  amber_low:50   },
+  spo2: { red_high:null, red_low:92,   amber_high:null, amber_low:94   },
+  temp: { red_high:38.0, red_low:35.5, amber_high:37.5, amber_low:null },
+};
+async function loadCriteriaFromServer() {
+  try {
+    const res = await apiGet({ action:'getCriteria' });
+    if (res.status==='ok' && res.criteria) CRITERIA = res.criteria;
+  } catch(e) { /* 失敗時沿用預設值 */ }
+}
+function indLevel(type, val) {
+  const c = CRITERIA[type];
+  if (!c) return 'green';
+  // spo2 / temp 下限用 ≤；其他下限用 <
+  const loOp = (type==='spo2'||type==='temp') ? (v,t)=>v<=t : (v,t)=>v<t;
+  if ((c.red_high   != null && val >= c.red_high)  ||
+      (c.red_low    != null && loOp(val, c.red_low)))   return 'red';
+  if ((c.amber_high != null && val >= c.amber_high) ||
+      (c.amber_low  != null && loOp(val, c.amber_low))) return 'amber';
+  return 'green';
+}
 function calcLight(d) {
-  const sbp=+d.sbp,dbp=+d.dbp,hr=+d.hr,spo2=+d.spo2,temp=+d.temp;
   const syms=String(d.symptoms||'');
   if(['chest','breath','conscious'].some(s=>syms.includes(s))) return 'red';
+  const lvls=['green','amber','red'];
   let lvl='green';
-  const up=l=>{ if(l==='red') lvl='red'; else if(l==='amber'&&lvl!=='red') lvl='amber'; };
-  if(sbp>=160||sbp<90||dbp>=100||dbp<60) up('red'); else if(sbp>=140||dbp>=90) up('amber');
-  if(hr>=120) up('red'); else if(hr>=101||hr<50) up('amber');
-  if(spo2<=92) up('red'); else if(spo2<=94) up('amber');
-  if(temp>=38.0||temp<=35.5) up('red'); else if(temp>=37.5) up('amber');
+  const up=l=>{ if(lvls.indexOf(l)>lvls.indexOf(lvl)) lvl=l; };
+  ['sbp','dbp','hr','spo2','temp'].forEach(t=>up(indLevel(t,+d[t])));
   return lvl;
-}
-function indLevel(type,val) {
-  if(type==='sbp'){ if(val>=160||val<90) return 'red'; if(val>=140) return 'amber'; return 'green'; }
-  if(type==='dbp'){ if(val>=100||val<60) return 'red'; if(val>=90) return 'amber'; return 'green'; }
-  if(type==='hr'){  if(val>=120) return 'red'; if(val>=101||val<50) return 'amber'; return 'green'; }
-  if(type==='spo2'){ if(val<=92) return 'red'; if(val<=94) return 'amber'; return 'green'; }
-  if(type==='temp'){ if(val>=38||val<=35.5) return 'red'; if(val>=37.5) return 'amber'; return 'green'; }
-  return 'green';
 }
 const LIGHT_META = {
   green:{ emoji:'🟢', label:'綠燈 — 正常出勤',
