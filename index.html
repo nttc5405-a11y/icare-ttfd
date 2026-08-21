@@ -436,7 +436,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       </div>
       <div class="field">
         <label>值班主管姓名</label>
-        <input id="batch-signer" type="text" placeholder="主管姓名">
+        <input id="batch-signer" type="text" placeholder="主管姓名" list="supervisors-list" autocomplete="off">
+        <datalist id="supervisors-list"></datalist>
       </div>
       <div class="field full">
         <label>統一處置方式（選填）</label>
@@ -886,7 +887,9 @@ async function doLogin() {
     const res = await apiPost({ action:'login', unit:unitName, password });
     if(res.status==='ok'){
       const account = { role:res.role, brigade:res.brigade, unit:unitName };
-      currentUser = { unitName, role:res.role, brigade:res.brigade, visibleUnits:getVisibleUnits(account) };
+      currentUser = { unitName, role:res.role, brigade:res.brigade, visibleUnits:getVisibleUnits(account),
+        supervisors:[res.sup1,res.sup2,res.sup3].filter(Boolean) };
+      updateSupervisorDatalist();
       LS.set('currentUser', JSON.stringify(currentUser));
       hideLoginModal();
       updateUserDisplay();
@@ -965,6 +968,25 @@ function doSettingsLogin() {
     document.getElementById('settings-pwd-error').style.display='block';
   }
 }
+function getSupervisors(){ return (currentUser&&currentUser.supervisors)||[]; }
+function saveSupervisors(){
+  const names=[1,2,3].map(i=>document.getElementById('cfg-sup-'+i)?.value.trim()||'').filter(Boolean);
+  LS.set('supervisors', JSON.stringify(names));
+  updateSupervisorDatalist();
+  toast('✓ 主管名單已儲存（'+names.length+' 位）');
+}
+function updateSupervisorDatalist(){
+  const dl=document.getElementById('supervisors-list');
+  if(!dl) return;
+  dl.innerHTML=getSupervisors().map(n=>`<option value="${n}">`).join('');
+}
+function loadSupervisorsIntoSettings(){
+  const names=getSupervisors();
+  [1,2,3].forEach((i,idx)=>{
+    const el=document.getElementById('cfg-sup-'+i);
+    if(el) el.value=names[idx]||'';
+  });
+}
 function saveAdminPwdBtn() {
   const v=document.getElementById('cfg-admin-pwd').value.trim();
   if(!v){ toast('請輸入新管理員密碼'); return; }
@@ -990,7 +1012,7 @@ async function buildAccountsTable() {
     });
     let html = `<p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
       💡 帳號結構請直接在 Google Sheets 的 <strong>units</strong>（單位）及 <strong>accounts</strong>（帳號）分頁調整。
-      這裡僅支援密碼快速修改；單位新增/刪除請至試算表編輯後重新整理頁面。</p>`;
+      密碼與值班主管名單可在此快速修改，主管名單登入後自動帶入簽核快速選單。</p>`;
     Object.entries(byBrigade).forEach(([brigade, list]) => {
       html += `<div class="acc-section"><div class="acc-brigade-header">🏢 ${brigade}</div>`;
       list.forEach(a => {
@@ -1002,9 +1024,20 @@ async function buildAccountsTable() {
           <span class="acc-role-tag ${isBrigade?'brigade':'subunit'}">${isBrigade?'大隊':'分隊'}</span>
           <input type="text" class="acc-pwd-input" id="acc-${k}"
             value="${escHtml(a.password)}" placeholder="密碼"
-            onchange="markPwdDirty('${k}')">
+            onchange="markDirty('${k}')">
           <button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;display:none;" id="save-${k}"
-            onclick="saveSinglePassword('${escHtml(a.unit)}','${k}')">儲存</button>
+            onclick="saveSingleAccount('${escHtml(a.unit)}','${k}')">儲存</button>
+        </div>
+        <div style="padding-left:${isBrigade?'0':'14px'};display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+          <input type="text" id="sup1-${k}" value="${escHtml(a.sup1||'')}" placeholder="值班主管 1"
+            style="width:120px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);color:var(--text);"
+            onchange="markDirty('${k}')">
+          <input type="text" id="sup2-${k}" value="${escHtml(a.sup2||'')}" placeholder="值班主管 2"
+            style="width:120px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);color:var(--text);"
+            onchange="markDirty('${k}')">
+          <input type="text" id="sup3-${k}" value="${escHtml(a.sup3||'')}" placeholder="值班主管 3"
+            style="width:120px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);color:var(--text);"
+            onchange="markDirty('${k}')">
         </div>`;
       });
       html += '</div>';
@@ -1014,24 +1047,33 @@ async function buildAccountsTable() {
     container.innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
   }
 }
-function markPwdDirty(k) {
+function markDirty(k) {
   const btn=document.getElementById('save-'+k);
   if(btn) btn.style.display='';
 }
-async function saveSinglePassword(unit, k) {
-  const input=document.getElementById('acc-'+k);
+function markPwdDirty(k){ markDirty(k); } // 相容舊呼叫
+async function saveSingleAccount(unit, k) {
+  const pwdInput=document.getElementById('acc-'+k);
   const btn=document.getElementById('save-'+k);
-  if(!input||!input.value.trim()){ toast('密碼不可空白'); return; }
+  if(!pwdInput||!pwdInput.value.trim()){ toast('密碼不可空白'); return; }
   if(btn) btn.textContent='儲存中…';
   try {
-    await apiPost({ action:'saveAccount', unit, password:input.value.trim() });
+    const payload = {
+      action:'saveAccount', unit,
+      password: pwdInput.value.trim(),
+      sup1: (document.getElementById('sup1-'+k)?.value||'').trim(),
+      sup2: (document.getElementById('sup2-'+k)?.value||'').trim(),
+      sup3: (document.getElementById('sup3-'+k)?.value||'').trim(),
+    };
+    await apiPost(payload);
     if(btn){ btn.textContent='✓'; setTimeout(()=>{ btn.textContent='儲存'; btn.style.display='none'; },1200); }
-    toast('✓ '+unit+' 密碼已更新');
+    toast('✓ '+unit+' 已更新');
   } catch(e) {
     if(btn) btn.textContent='儲存';
     toast('儲存失敗：'+e.message);
   }
 }
+async function saveSinglePassword(unit, k){ await saveSingleAccount(unit, k); }
 // 保留相容舊 UI 按鈕
 async function saveAllPasswords() {
   const inputs=document.querySelectorAll('.acc-pwd-input');
@@ -1063,7 +1105,7 @@ function goTab(id) {
   TABS.forEach(t=>{ document.getElementById('tab-'+t).style.display = t===id?'':'none'; });
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{ b.classList.toggle('active',TABS[i]===id); });
   if(id==='supervisor') loadSupervisor();
-  if(id==='settings'){ buildAccountsTable(); populateAdminUnits(); setAdminDays(30); }
+  if(id==='settings'){ buildAccountsTable(); populateAdminUnits(); setAdminDays(30); loadSupervisorsIntoSettings(); }
 }
 
 function loadSettings(){}
@@ -1100,6 +1142,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   }
   renderBrigadeGrid();   // 先用備援值渲染，避免按鈕空白
+  updateSupervisorDatalist();
   checkApiStatus();
   loadUnitsFromServer(); // 從 GAS units/accounts 分頁動態載入單位結構，完成後再次渲染
   document.getElementById('today-badge').textContent=
@@ -1627,7 +1670,7 @@ async function loadSupervisor() {
             ${r.note?`<p style="font-size:12px;color:var(--muted);margin-bottom:6px;">備註：${r.note}</p>`:''}
             ${r.fatigue>3?`<p style="font-size:12px;color:var(--amber-text);margin-bottom:8px;">⚠️ 疲勞指數 ${r.fatigue}/5，請特別留意</p>`:''}
             <div class="sign-row" style="flex-wrap:wrap;gap:8px;">
-              <input type="text" id="signer-${r.id}" placeholder="主管姓名" style="max-width:130px;">
+              <input type="text" id="signer-${r.id}" placeholder="主管姓名" list="supervisors-list" autocomplete="off" style="max-width:130px;">
               ${dispositionSelect(r.id,r.light)}
               <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" onclick="doSign('${r.id}')">確認簽核</button>
             </div>
