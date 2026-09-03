@@ -797,7 +797,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <h3>🔐 iCare 系統登入</h3>
     <p>請選擇您的單位，並輸入該單位密碼</p>
     <select id="login-unit"><option value="">請選擇登入單位…</option></select>
-    <input id="login-pwd" type="password" placeholder="密碼（預設：0000）"
+    <input id="login-pwd" type="password" placeholder="密碼（預設：各單位電話）"
       onkeydown="if(event.key==='Enter')doLogin()">
     <div class="pwd-err" id="login-error">帳號或密碼錯誤，請再試一次</div>
     <button class="btn btn-primary" style="width:100%;margin-top:2px;" onclick="doLogin()">登入系統</button>
