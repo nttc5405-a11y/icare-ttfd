@@ -277,6 +277,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   .main{padding:16px 12px;}
   .hist-filter-grid{grid-template-columns:1fr 1fr !important;}
 }
+
+/* ── 列印（統計報表存成 PDF）── */
+@media print{
+  .nav,.header-actions,.btn,.lock-icon,#login-modal,#settings-modal{display:none !important;}
+  body{background:#fff;}
+  .card,.db-chart-box{break-inside:avoid;box-shadow:none;}
+}
 </style>
 </head>
 <body>
@@ -642,9 +649,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 
   <!-- ── 管理員完整資料查詢 ─────────────────────────────────── -->
   <div class="card">
-    <div class="card-title">📊 完整資料查詢（管理員專用）</div>
+    <div class="card-title">📊 完整資料查詢與統計報表（管理員專用）</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
-      不受 30 天限制，可跨日期、跨單位查詢所有歷史填報紀錄。
+      不受 30 天限制，可跨日期、跨單位查詢。<b>產生統計報表</b>只回傳彙總數字，資料量大時也很快；
+      <b>查詢明細清單</b>會把符合條件的每一筆原始紀錄載入瀏覽器，範圍拉太大會慢。
     </p>
     <div class="form-grid">
       <div class="field">
@@ -670,7 +678,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       </div>
       <div class="field">
         <label>姓名關鍵字</label>
-        <input id="admin-name" type="text" placeholder="模糊搜尋">
+        <input id="admin-name" type="text" placeholder="模糊搜尋，填了才會出現個人趨勢圖">
       </div>
       <div class="field">
         <label>簽核狀態</label>
@@ -682,15 +690,89 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       </div>
     </div>
     <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminThisMonth()">本月</button>
       <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminDays(7)">近 7 天</button>
       <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminDays(30)">近 30 天</button>
       <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminDays(90)">近 90 天</button>
       <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="setAdminDays(0)">全部（不限）</button>
-      <button class="btn btn-primary" onclick="loadAdminHistory()">🔍 搜尋</button>
+      <button class="btn btn-primary" onclick="loadStats()">📊 產生統計報表</button>
+      <button class="btn btn-ghost" onclick="loadAdminHistory()">🔍 查詢明細清單</button>
     </div>
+    <p id="st-err" style="font-size:12px;color:var(--red-text);margin-top:8px;display:none;"></p>
+
+    <!-- ── 統計報表輸出 ────────────────────────────────────── -->
+    <div id="st-result" style="display:none;margin-top:16px;">
+
+      <div id="st-kpi"></div>
+
+      <div class="db-charts-row">
+        <div class="db-chart-box">
+          <div class="db-chart-title">燈號分布</div>
+          <div class="chart-wrap"><canvas id="st-chart-pie"></canvas></div>
+        </div>
+        <div class="db-chart-box">
+          <div class="db-chart-title">每日異常人次（紅／黃）</div>
+          <div class="chart-wrap"><canvas id="st-chart-daily"></canvas></div>
+        </div>
+      </div>
+
+      <div class="db-chart-box full" style="margin-bottom:10px;">
+        <div class="db-chart-title">各單位異常率比較</div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="st-chart-unit"></canvas></div>
+      </div>
+
+      <!-- 個人指標趨勢：填了姓名才顯示 -->
+      <div class="db-chart-box full" id="st-person-card" style="display:none;margin-bottom:10px;">
+        <div class="db-chart-title">個人生理指標趨勢</div>
+        <p id="st-person-who" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></p>
+        <div class="chart-wrap" style="height:280px;"><canvas id="st-chart-person"></canvas></div>
+        <p style="font-size:11px;color:var(--hint);margin-top:8px;">
+          虛線為判定門檻（收縮壓黃燈 / 紅燈）。血氧使用右側刻度。
+        </p>
+      </div>
+
+      <div class="db-chart-box full" style="margin-bottom:10px;">
+        <div class="db-chart-title">🚩 建議關注名單</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+          條件：最近<b>連續 3 次以上</b>非綠燈，或期間內累計異常<b>達 5 次</b>。
+        </p>
+        <div id="st-watchlist"></div>
+      </div>
+
+      <div class="db-chart-box full" style="margin-bottom:10px;">
+        <div class="db-chart-title">人員統計明細</div>
+        <div id="st-person-table"></div>
+      </div>
+
+      <div class="db-chart-box full">
+        <div class="db-chart-title">匯出報表</div>
+        <div class="btn-row" style="margin-top:0;">
+          <button class="btn btn-ghost" onclick="exportStatsCsv('unit')">⬇ 單位彙總 CSV</button>
+          <button class="btn btn-ghost" onclick="exportStatsCsv('person')">⬇ 人員統計 CSV</button>
+          <button class="btn btn-ghost" onclick="exportStatsCsv('watchlist')">⬇ 關注名單 CSV</button>
+          <button class="btn btn-ghost" onclick="exportStatsCsv('daily')">⬇ 每日彙總 CSV</button>
+          <button class="btn btn-primary" onclick="window.print()">🖨 列印／存成 PDF</button>
+        </div>
+        <p style="font-size:11px;color:var(--hint);margin-top:8px;">
+          CSV 已加上 UTF-8 BOM，Excel 直接開啟中文不會變亂碼。
+        </p>
+      </div>
+
+    </div>
+
     <p id="admin-query-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
-    <div id="admin-dashboard" style="margin-top:16px;display:none;"></div>
     <div id="admin-history-table" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">試算表分頁初始化</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+      首次部署後，按下按鈕讓 GAS 自動在試算表建立所需分頁（criteria、dispositions、accounts 等），並填入預設值。
+    </p>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="initAllSheets()">🗂️ 初始化所有分頁</button>
+    </div>
+    <p id="init-sheets-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
   </div>
 
   <div class="card">
@@ -1361,8 +1443,6 @@ async function loadAdminHistory(){
   const container=document.getElementById('admin-history-table');
   msg.style.display='none';
   container.innerHTML='<div class="empty-state">載入中…</div>';
-  const dbEl=document.getElementById('admin-dashboard');
-  if(dbEl){ dbEl.style.display='none'; dbEl.innerHTML=''; ['db-pie','db-trend','db-unit'].forEach(id=>{const c=Chart.getChart(id);if(c)c.destroy();}); }
 
   const dateFrom=document.getElementById('admin-date-from').value;
   const dateTo  =document.getElementById('admin-date-to').value;
@@ -1394,7 +1474,6 @@ async function loadAdminHistory(){
     const ambers=data.filter(r=>r.light==='amber').length;
     msg.textContent=`共 ${data.length} 筆｜🔴 ${reds} 筆　🟡 ${ambers} 筆　🟢 ${data.length-reds-ambers} 筆`;
     msg.style.display='block';
-    renderAdminDashboard(data);
 
     const rows=data.map(r=>{
       const le=r.light==='red'?'🔴':r.light==='amber'?'🟡':'🟢';
@@ -1424,144 +1503,7 @@ async function loadAdminHistory(){
   }
 }
 
-// ── 管理員儀表板 ───────────────────────────────────────────────
-function renderAdminDashboard(data) {
-  const el = document.getElementById('admin-dashboard');
-  if (!el) return;
-  const total  = data.length;
-  const reds   = data.filter(r => r.light === 'red').length;
-  const ambers = data.filter(r => r.light === 'amber').length;
-  const greens = total - reds - ambers;
-  const pct = v => total ? ((v/total)*100).toFixed(1)+'%' : '—';
-
-  // 依日期分組（最多顯示最近 14 天）
-  const byDate = {};
-  data.forEach(r => {
-    const d = (r.shift ? shiftToIso(r.shift) : tsDate(r.timestamp)).slice(0,10);
-    if (!d) return;
-    if (!byDate[d]) byDate[d] = {red:0,amber:0,green:0};
-    byDate[d][r.light==='red'?'red':r.light==='amber'?'amber':'green']++;
-  });
-  const dateKeys = Object.keys(byDate).sort().slice(-14);
-  const dateLabels = dateKeys.map(d => d.slice(5)); // MM-DD
-
-  // 依大隊分組
-  const byBrigade = {};
-  data.forEach(r => {
-    let brigade = r.brigade || '其他';
-    if (!brigade || brigade === '其他') {
-      for (const [b, subs] of Object.entries(UNITS)) {
-        if (subs.includes(r.unit)) { brigade = b; break; }
-      }
-    }
-    if (!byBrigade[brigade]) byBrigade[brigade] = {red:0,amber:0};
-    if (r.light==='red') byBrigade[brigade].red++;
-    else if (r.light==='amber') byBrigade[brigade].amber++;
-  });
-  const brigadeKeys = Object.keys(byBrigade);
-
-  el.style.display = '';
-  el.innerHTML = `
-    <div class="db-stat-grid">
-      <div class="db-stat" style="border-color:#3b82f6;">
-        <div class="db-stat-val" style="color:#3b82f6;">${total}</div>
-        <div class="db-stat-label">總填報筆數</div>
-      </div>
-      <div class="db-stat" style="border-color:var(--green-text);">
-        <div class="db-stat-val" style="color:var(--green-text);">${greens}</div>
-        <div class="db-stat-label">🟢 正常出勤（綠燈）</div>
-        <div class="db-stat-sub">${pct(greens)}</div>
-      </div>
-      <div class="db-stat" style="border-color:var(--amber-text);">
-        <div class="db-stat-val" style="color:var(--amber-text);">${ambers}</div>
-        <div class="db-stat-label">🟡 持續觀察（黃燈）</div>
-        <div class="db-stat-sub">${pct(ambers)}</div>
-      </div>
-      <div class="db-stat" style="border-color:var(--red-text);">
-        <div class="db-stat-val" style="color:var(--red-text);">${reds}</div>
-        <div class="db-stat-label">🔴 立即處置（紅燈）</div>
-        <div class="db-stat-sub">${pct(reds)}</div>
-      </div>
-    </div>
-    <div class="db-charts-row">
-      <div class="db-chart-box">
-        <div class="db-chart-title">燈號分布</div>
-        <canvas id="db-pie"></canvas>
-      </div>
-      <div class="db-chart-box">
-        <div class="db-chart-title">異常趨勢（紅/黃燈 依日期）</div>
-        <canvas id="db-trend"></canvas>
-      </div>
-    </div>
-    <div class="db-chart-box full" style="margin-bottom:16px;">
-      <div class="db-chart-title">各大隊異常比較</div>
-      <canvas id="db-unit"></canvas>
-    </div>`;
-
-  // 銷毀舊 chart 避免重複
-  ['db-pie','db-trend','db-unit'].forEach(id => {
-    const c = Chart.getChart(id); if (c) c.destroy();
-  });
-
-  // 取得當前主題顏色
-  const style = getComputedStyle(document.documentElement);
-  const mutedColor = style.getPropertyValue('--muted').trim() || '#6b6960';
-  const borderColor = style.getPropertyValue('--border').trim() || '#e0ddd5';
-  const chartDefaults = { color: mutedColor, borderColor };
-
-  new Chart(document.getElementById('db-pie'), {
-    type: 'doughnut',
-    data: {
-      labels: ['綠燈', '黃燈', '紅燈'],
-      datasets: [{ data: [greens, ambers, reds],
-        backgroundColor: ['#4ade80','#fbbf24','#f87171'],
-        borderWidth: 0 }]
-    },
-    options: {
-      cutout: '62%',
-      plugins: { legend: { position: 'bottom', labels: { font:{size:11}, color: mutedColor, padding:8 } } }
-    }
-  });
-
-  new Chart(document.getElementById('db-trend'), {
-    type: 'bar',
-    data: {
-      labels: dateLabels,
-      datasets: [
-        { label:'紅燈', data: dateKeys.map(d=>byDate[d].red),   backgroundColor:'#f87171', stack:'a' },
-        { label:'黃燈', data: dateKeys.map(d=>byDate[d].amber), backgroundColor:'#fbbf24', stack:'a' },
-      ]
-    },
-    options: {
-      scales: {
-        x: { stacked:true, grid:{display:false}, ticks:{color:mutedColor,font:{size:11}} },
-        y: { stacked:true, beginAtZero:true, grid:{color:borderColor}, ticks:{color:mutedColor,font:{size:11}} }
-      },
-      plugins: { legend:{ position:'top', align:'end', labels:{font:{size:11},color:mutedColor} } }
-    }
-  });
-
-  new Chart(document.getElementById('db-unit'), {
-    type: 'bar',
-    data: {
-      labels: brigadeKeys,
-      datasets: [
-        { label:'紅燈', data: brigadeKeys.map(b=>byBrigade[b].red),   backgroundColor:'#f87171', stack:'a', barThickness:18 },
-        { label:'黃燈', data: brigadeKeys.map(b=>byBrigade[b].amber), backgroundColor:'#fbbf24', stack:'a', barThickness:18 },
-      ]
-    },
-    options: {
-      indexAxis: 'y',
-      scales: {
-        x: { stacked:true, beginAtZero:true, grid:{color:borderColor}, ticks:{color:mutedColor,font:{size:11}} },
-        y: { stacked:true, grid:{display:false}, ticks:{color:mutedColor,font:{size:12}} }
-      },
-      plugins: { legend:{ position:'top', align:'end', labels:{font:{size:11},color:mutedColor} } }
-    }
-  });
-}
-
-// ── 燈號判定 ──────────────────────────────────────────────────
+// ── 燈號判定 ────────────────────────────────
 // ── 燈號判定標準（預設值，頁面載入後由 GAS criteria 分頁覆寫）──
 let CRITERIA = {
   sbp:  { red_high:160,  red_low:90,   amber_high:140,  amber_low:null },
@@ -1570,6 +1512,22 @@ let CRITERIA = {
   spo2: { red_high:null, red_low:92,   amber_high:null, amber_low:94   },
   temp: { red_high:38.0, red_low:35.5, amber_high:37.5, amber_low:null },
 };
+async function initAllSheets() {
+  const msg = document.getElementById('init-sheets-msg');
+  msg.textContent = '⏳ 初始化中…'; msg.style.display = 'block';
+  try {
+    const actions = ['getUnits','getAccounts','getDispositions','getCriteria','ping'];
+    const results = await Promise.all(actions.map(action => apiGet({ action }).catch(e => ({ status:'error', action, e }))));
+    const failed  = results.filter(r => r.status !== 'ok');
+    if (failed.length) {
+      msg.textContent = `⚠️ 部分失敗：${failed.map(r=>r.action||'unknown').join('、')}，請確認已重新部署 GAS。`;
+    } else {
+      msg.textContent = '✅ 所有分頁初始化完成，請至 Google Sheets 確認。';
+    }
+  } catch(e) {
+    msg.textContent = '❌ 失敗：' + e.message + '，請確認 GAS_URL 正確且已重新部署。';
+  }
+}
 async function loadCriteriaFromServer() {
   try {
     const res = await apiGet({ action:'getCriteria' });
@@ -1890,6 +1848,292 @@ function renderCharts(data) {
       scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',stepSize:1},grid:{color:'#e0ddd5'}}},
       responsive:true,maintainAspectRatio:false}
   });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 統計報表分頁
+// 資料由 GAS 的 getStats 動作在後端彙總，前端只收數字不收原始紀錄
+// ══════════════════════════════════════════════════════════════
+let statsData = null;
+let stChartPie = null, stChartDaily = null, stChartUnit = null, stChartPerson = null;
+
+// 日期快鍵：本月
+function setAdminThisMonth() {
+  const now   = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  document.getElementById('admin-date-from').value = first.toISOString().split('T')[0];
+  document.getElementById('admin-date-to').value   = now.toISOString().split('T')[0];
+}
+
+async function loadStats() {
+  const errEl = document.getElementById('st-err');
+  errEl.style.display = 'none';
+  const dateFrom = document.getElementById('admin-date-from').value;
+  const dateTo   = document.getElementById('admin-date-to').value;
+
+  if (dateFrom && dateTo && new Date(dateTo) < new Date(dateFrom)) {
+    errEl.textContent = '⚠️ 日期起不能晚於日期迄。';
+    errEl.style.display = ''; return;
+  }
+
+  const params = { action: 'getStats' };
+  const unit   = document.getElementById('admin-unit').value;
+  const name   = document.getElementById('admin-name').value.trim();
+  const light  = document.getElementById('admin-light').value;
+  const signed = document.getElementById('admin-signed').value;
+  if (dateFrom) params.dateFrom = dateFrom;
+  if (dateTo)   params.dateTo   = dateTo;
+  if (unit)     params.unit     = unit;
+  if (name)     params.name     = name;
+  if (light)    params.light    = light;
+  if (signed)   params.signed   = signed;
+
+  document.getElementById('st-result').style.display = '';
+  document.getElementById('st-kpi').innerHTML = '<div class="empty-state">統計中…</div>';
+
+  try {
+    const st = await apiGet(params);
+    statsData = st;
+    if (!st.total) {
+      document.getElementById('st-kpi').innerHTML = '<div class="empty-state">此條件查無填報紀錄</div>';
+      document.getElementById('st-watchlist').innerHTML    = '<div class="empty-state">—</div>';
+      document.getElementById('st-person-table').innerHTML = '<div class="empty-state">—</div>';
+      document.getElementById('st-person-card').style.display = 'none';
+      [stChartPie, stChartDaily, stChartUnit, stChartPerson].forEach(c => { if (c) c.destroy(); });
+      stChartPie = stChartDaily = stChartUnit = stChartPerson = null;
+      return;
+    }
+    renderStatsKpi(st);
+    renderStatsCharts(st);
+    renderStatsPerson(st);
+    renderWatchlist(st);
+    renderPersonTable(st);
+  } catch (e) {
+    document.getElementById('st-kpi').innerHTML =
+      '<div class="empty-state">統計失敗：' + escHtml(e.message) + '</div>';
+  }
+}
+
+function renderStatsKpi(s) {
+  const pct = (v, base) => base ? ((v / base) * 100).toFixed(1) + '%' : '—';
+  const abnormal = s.red + s.amber;
+  document.getElementById('st-kpi').innerHTML = `
+    <div class="db-stat-grid">
+      <div class="db-stat" style="border-color:#3b82f6;">
+        <div class="db-stat-val" style="color:#3b82f6;">${s.total}</div>
+        <div class="db-stat-label">總填報人次</div>
+        <div class="db-stat-sub">${s.peopleCount} 人 ｜ ${s.range.from || '最早'} ~ ${s.range.to || '最新'}</div>
+      </div>
+      <div class="db-stat" style="border-color:var(--amber-text);">
+        <div class="db-stat-val" style="color:var(--amber-text);">${pct(abnormal, s.total)}</div>
+        <div class="db-stat-label">異常率（紅＋黃）</div>
+        <div class="db-stat-sub">${abnormal} 人次</div>
+      </div>
+      <div class="db-stat" style="border-color:var(--red-text);">
+        <div class="db-stat-val" style="color:var(--red-text);">${s.red}</div>
+        <div class="db-stat-label">🔴 紅燈人次</div>
+        <div class="db-stat-sub">${pct(s.red, s.total)}</div>
+      </div>
+      <div class="db-stat" style="border-color:var(--green-text);">
+        <div class="db-stat-val" style="color:var(--green-text);">${pct(s.signed, s.total)}</div>
+        <div class="db-stat-label">簽核完成率</div>
+        <div class="db-stat-sub">未簽核 ${s.unsigned} 筆</div>
+      </div>
+      <div class="db-stat" style="border-color:var(--border2);">
+        <div class="db-stat-val">${s.retested ? pct(s.retestToGreen, s.retested) : '—'}</div>
+        <div class="db-stat-label">複測後轉綠率</div>
+        <div class="db-stat-sub">複測 ${s.retested} 次，轉綠 ${s.retestToGreen} 次</div>
+      </div>
+    </div>`;
+}
+
+function renderStatsCharts(s) {
+  const MUT = '#888', GRID = '#e0ddd5';
+  const legendLabels = { color: MUT, font: { size: 12 } };
+
+  if (stChartPie) stChartPie.destroy();
+  stChartPie = new Chart(document.getElementById('st-chart-pie'), {
+    type: 'doughnut',
+    data: { labels: ['🟢 綠燈', '🟡 黃燈', '🔴 紅燈'],
+      datasets: [{ data: [s.green, s.amber, s.red],
+        backgroundColor: ['#639922', '#BA7517', '#A32D2D'], borderWidth: 0 }] },
+    options: { plugins: { legend: { position: 'bottom', labels: legendLabels } },
+      cutout: '55%', responsive: true, maintainAspectRatio: false }
+  });
+
+  const days = s.byDate.map(d => d.date.slice(5));
+  if (stChartDaily) stChartDaily.destroy();
+  stChartDaily = new Chart(document.getElementById('st-chart-daily'), {
+    type: 'line',
+    data: { labels: days, datasets: [
+      { label: '🔴 紅燈', data: s.byDate.map(d => d.red),
+        borderColor: '#A32D2D', backgroundColor: '#f09595', tension: .25 },
+      { label: '🟡 黃燈', data: s.byDate.map(d => d.amber),
+        borderColor: '#BA7517', backgroundColor: '#FAC775', tension: .25 },
+    ] },
+    options: { plugins: { legend: { labels: legendLabels } },
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { ticks: { color: MUT, font: { size: 11 } } },
+                y: { beginAtZero: true, ticks: { color: MUT, precision: 0 }, grid: { color: GRID } } } }
+  });
+
+  const units = s.byUnit.map(u => u.unit);
+  if (stChartUnit) stChartUnit.destroy();
+  stChartUnit = new Chart(document.getElementById('st-chart-unit'), {
+    type: 'bar',
+    data: { labels: units, datasets: [
+      { label: '異常率 %', data: s.byUnit.map(u => u.abnormalRate), backgroundColor: '#BA7517' },
+    ] },
+    options: { indexAxis: 'y',
+      plugins: { legend: { labels: legendLabels },
+        tooltip: { callbacks: { afterLabel: ctx => {
+          const u = s.byUnit[ctx.dataIndex];
+          return '紅 ' + u.red + '／黃 ' + u.amber + '／綠 ' + u.green + '，共 ' + u.total + ' 人次';
+        } } } },
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { beginAtZero: true, ticks: { color: MUT }, grid: { color: GRID } },
+                y: { ticks: { color: MUT, font: { size: 11 } } } } }
+  });
+}
+
+function renderStatsPerson(s) {
+  const card = document.getElementById('st-person-card');
+  if (!s.series || !s.series.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  const who = {};
+  s.series.forEach(x => { who[(x.unit || '未填單位') + ' ' + (x.name || '未具名')] = 1; });
+  const names = Object.keys(who);
+  document.getElementById('st-person-who').textContent = names.length === 1
+    ? names[0] + '（' + s.series.length + ' 筆）'
+    : '符合姓名關鍵字者共 ' + names.length + ' 人：' + names.join('、') +
+      '。多人時曲線會混在一起，建議輸入完整姓名。';
+
+  const MUT = '#888', GRID = '#e0ddd5';
+  const labels = s.series.map(x => x.day.slice(5));
+  const thr = (v, color, label) => ({
+    label: label, data: labels.map(() => v), borderColor: color, borderDash: [5, 4],
+    borderWidth: 1, pointRadius: 0, fill: false, yAxisID: 'y'
+  });
+  const ds = [
+    { label: '收縮壓', data: s.series.map(x => x.sbp),
+      borderColor: '#A32D2D', backgroundColor: '#A32D2D', tension: .25, yAxisID: 'y' },
+    { label: '舒張壓', data: s.series.map(x => x.dbp),
+      borderColor: '#BA7517', backgroundColor: '#BA7517', tension: .25, yAxisID: 'y' },
+    { label: '心率', data: s.series.map(x => x.hr),
+      borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: .25, yAxisID: 'y' },
+    { label: '血氧 %', data: s.series.map(x => x.spo2),
+      borderColor: '#639922', backgroundColor: '#639922', tension: .25, yAxisID: 'y1' },
+  ];
+  if (CRITERIA.sbp && CRITERIA.sbp.amber_high != null)
+    ds.push(thr(CRITERIA.sbp.amber_high, '#FAC775', '收縮壓黃燈 ' + CRITERIA.sbp.amber_high));
+  if (CRITERIA.sbp && CRITERIA.sbp.red_high != null)
+    ds.push(thr(CRITERIA.sbp.red_high, '#f09595', '收縮壓紅燈 ' + CRITERIA.sbp.red_high));
+
+  if (stChartPerson) stChartPerson.destroy();
+  stChartPerson = new Chart(document.getElementById('st-chart-person'), {
+    type: 'line',
+    data: { labels: labels, datasets: ds },
+    options: {
+      plugins: { legend: { labels: { color: MUT, font: { size: 11 }, boxWidth: 18 } } },
+      responsive: true, maintainAspectRatio: false, spanGaps: true,
+      scales: {
+        x:  { ticks: { color: MUT, font: { size: 10 }, maxRotation: 0, autoSkip: true } },
+        y:  { position: 'left', ticks: { color: MUT }, grid: { color: GRID },
+              title: { display: true, text: 'mmHg／次·分', color: MUT, font: { size: 10 } } },
+        y1: { position: 'right', min: 88, max: 100, ticks: { color: MUT },
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'SpO2 %', color: MUT, font: { size: 10 } } },
+      }
+    }
+  });
+}
+
+function renderWatchlist(s) {
+  const el = document.getElementById('st-watchlist');
+  if (!s.watchlist.length) {
+    el.innerHTML = '<div class="empty-state">✅ 此條件下沒有需要特別關注的同仁</div>';
+    return;
+  }
+  el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table">' +
+    '<thead><tr><th>姓名</th><th>單位</th><th>最近連續異常</th><th>期間異常／填報</th>' +
+    '<th>最近填報日</th><th>最近燈號</th></tr></thead><tbody>' +
+    s.watchlist.map(w => `<tr>
+      <td style="font-weight:600;">${escHtml(w.name)}</td>
+      <td style="font-size:12px;">${escHtml(w.unit)}</td>
+      <td style="font-weight:600;color:${w.streak >= 3 ? 'var(--red-text)' : 'inherit'};">${w.streak} 次</td>
+      <td>${w.abnormal} / ${w.total}</td>
+      <td style="font-size:12px;white-space:nowrap;">${w.lastDay}</td>
+      <td>${BADGE_HTML(w.lastLight)}</td>
+    </tr>`).join('') + '</tbody></table></div>';
+}
+
+function renderPersonTable(s) {
+  const el   = document.getElementById('st-person-table');
+  const rows = s.byPerson.slice(0, 100);
+  const more = s.byPerson.length > rows.length
+    ? '<p style="font-size:11px;color:var(--hint);margin-top:8px;">畫面僅顯示異常最多的前 100 人，完整 ' +
+      s.byPerson.length + ' 人請用下方「人員統計 CSV」匯出。</p>'
+    : '';
+  el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table">' +
+    '<thead><tr><th>姓名</th><th>單位</th><th>填報</th><th>🔴</th><th>🟡</th><th>🟢</th>' +
+    '<th>平均血壓</th><th>平均心率</th><th>最高收縮壓</th><th>最近填報日</th></tr></thead><tbody>' +
+    rows.map(p => `<tr>
+      <td style="font-weight:600;">${escHtml(p.name)}</td>
+      <td style="font-size:12px;">${escHtml(p.unit)}</td>
+      <td>${p.total}</td>
+      <td style="color:var(--red-text);">${p.red || '—'}</td>
+      <td style="color:var(--amber-text);">${p.amber || '—'}</td>
+      <td style="color:var(--green-text);">${p.green || '—'}</td>
+      <td>${p.avgSbp != null ? p.avgSbp + '/' + (p.avgDbp != null ? p.avgDbp : '—') : '—'}</td>
+      <td>${p.avgHr != null ? p.avgHr : '—'}</td>
+      <td>${p.maxSbp != null ? p.maxSbp : '—'}</td>
+      <td style="font-size:12px;white-space:nowrap;">${p.lastDay}</td>
+    </tr>`).join('') + '</tbody></table></div>' + more;
+}
+
+// ── CSV 匯出（加 UTF-8 BOM，Excel 開中文不亂碼）───────────────
+const LIGHT_ZH = { red: '紅燈', amber: '黃燈', green: '綠燈' };
+function csvCell(v) {
+  const s = (v === null || v === undefined) ? '' : String(v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCsv(filename, rows) {
+  const csv  = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+function exportStatsCsv(kind) {
+  const s = statsData;
+  if (!s || !s.total) { toast('請先產生報表'); return; }
+  const tag = (s.range.from || '全部') + '_' + (s.range.to || '全部');
+  let rows, name;
+  if (kind === 'unit') {
+    name = 'iCare單位彙總_' + tag + '.csv';
+    rows = [['單位', '填報人次', '紅燈', '黃燈', '綠燈', '異常率(%)']];
+    s.byUnit.forEach(u => rows.push([u.unit, u.total, u.red, u.amber, u.green, u.abnormalRate]));
+  } else if (kind === 'person') {
+    name = 'iCare人員統計_' + tag + '.csv';
+    rows = [['姓名', '單位', '填報次數', '紅燈', '黃燈', '綠燈',
+             '平均收縮壓', '平均舒張壓', '平均心率', '最高收縮壓', '最近填報日', '最近燈號']];
+    s.byPerson.forEach(p => rows.push([p.name, p.unit, p.total, p.red, p.amber, p.green,
+      p.avgSbp, p.avgDbp, p.avgHr, p.maxSbp, p.lastDay, LIGHT_ZH[p.lastLight] || p.lastLight]));
+  } else if (kind === 'watchlist') {
+    name = 'iCare關注名單_' + tag + '.csv';
+    rows = [['姓名', '單位', '最近連續異常次數', '期間異常次數', '期間填報次數', '最近填報日', '最近燈號']];
+    s.watchlist.forEach(w => rows.push([w.name, w.unit, w.streak, w.abnormal, w.total, w.lastDay, LIGHT_ZH[w.lastLight] || w.lastLight]));
+  } else {
+    name = 'iCare每日彙總_' + tag + '.csv';
+    rows = [['日期', '填報人次', '紅燈', '黃燈', '綠燈']];
+    s.byDate.forEach(d => rows.push([d.date, d.total, d.red, d.amber, d.green]));
+  }
+  if (rows.length === 1) { toast('這份報表目前沒有資料'); return; }
+  downloadCsv(name, rows);
+  toast('✓ 已匯出 ' + name);
 }
 
 // ── 即時燈號 & 判讀面板 ───────────────────────────────────────
