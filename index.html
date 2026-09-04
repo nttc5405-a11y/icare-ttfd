@@ -1261,7 +1261,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   setHistToday();
   // 還原登入狀態
   const stored=LS.get('currentUser','');
-  if(stored){ try{ currentUser=JSON.parse(stored); updateUserDisplay(); loadUnitSelects(); }catch(e){ currentUser=null; } }
+  if(stored){ try{
+    currentUser=JSON.parse(stored);
+    updateUserDisplay();
+    loadUnitSelects();
+    // 主管名單存在 currentUser 裡，必須在還原登入狀態後重建，
+    // 否則重新整理頁面後「主管姓名」的下拉建議會是空的
+    updateSupervisorDatalist();
+  }catch(e){ currentUser=null; } }
   // 配額監控：改為 10 分鐘一次，避免背景請求干擾填報速度
   checkQuota();
   setInterval(checkQuota, 600000);
