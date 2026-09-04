@@ -619,7 +619,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <div class="card">
     <div class="card-title">帳號密碼管理</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
-      <strong>大隊帳號</strong>可查閱所屬所有分隊資料；<strong>分隊帳號</strong>僅能查閱本單位資料。所有單位預設密碼均為 <code>0000</code>。
+      <strong>大隊帳號</strong>可查閱所屬所有分隊資料；<strong>分隊帳號</strong>僅能查閱本單位資料。各單位預設密碼為該單位電話。
     </p>
     <div id="accounts-container"></div>
     <div class="btn-row">
@@ -797,7 +797,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <h3>🔐 iCare 系統登入</h3>
     <p>請選擇您的單位，並輸入該單位密碼</p>
     <select id="login-unit"><option value="">請選擇登入單位…</option></select>
-    <input id="login-pwd" type="password" placeholder="密碼（預設：0000）"
+    <input id="login-pwd" type="password" placeholder="密碼（預設：各單位電話）"
       onkeydown="if(event.key==='Enter')doLogin()">
     <div class="pwd-err" id="login-error">帳號或密碼錯誤，請再試一次</div>
     <button class="btn btn-primary" style="width:100%;margin-top:2px;" onclick="doLogin()">登入系統</button>
