@@ -329,7 +329,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
         <input id="f-name" type="text" placeholder="填報人姓名">
       </div>
       <div class="field">
-        <label>日期</label>
+        <label>填報日期</label>
         <input id="f-shift" type="date">
       </div>
       <div class="field full">
@@ -936,6 +936,17 @@ function getVisibleUnits(account) {
     return subs.includes(account.brigade) ? subs : [account.brigade,...subs];
   }
   return [account.unit];
+}
+// 大隊帳號只能簽核「大隊本部」自己的紀錄；
+// 所屬分隊的資料看得到、但不能代替分隊簽核
+const PENDING_UNIT = {};
+function canSignRecord(r) {
+  if (!currentUser) return false;
+  if (currentUser.role !== 'brigade') return true;
+  return String(r.unit || '').trim() === String(currentUser.unitName || '').trim();
+}
+function canSignId(id) {
+  return canSignRecord({ unit: PENDING_UNIT[id] || '' });
 }
 function filterByUser(data) {
   if(!currentUser||!currentUser.visibleUnits||!currentUser.visibleUnits.length) return data;
@@ -1607,6 +1618,13 @@ async function doSubmit() {
     fatigue:document.getElementById('f-fatigue').value,symptoms:getSymptoms(),
     note:document.getElementById('f-note').value};
   if(!vals.unit){ toast('請先選擇單位再儲存'); return; }
+  // 姓名必填：空白會讓該筆紀錄在報表、關注名單裡都比對不到人
+  vals.name = String(vals.name || '').trim();
+  if(!vals.name){
+    toast('請填寫姓名');
+    const el=document.getElementById('f-name'); if(el){ el.focus(); }
+    return;
+  }
   if(!vals.sbp||!vals.dbp||!vals.hr||!vals.spo2||!vals.temp){ toast('請填寫所有生理數值'); return; }
   showMsg('submit-msg','⏳ 儲存中…');
   try{
@@ -1642,11 +1660,20 @@ async function loadSupervisor() {
     if(!pending.length){
       document.getElementById('supervisor-list').innerHTML='<div class="empty-state">目前無待簽核紀錄 🎉</div>'; return;
     }
-    document.getElementById('supervisor-list').innerHTML=pending.map(r=>{const sd=shiftToIso(r.shift); return `
+    pending.forEach(r=>{ PENDING_UNIT[r.id]=r.unit||''; });
+    const viewOnly=pending.filter(r=>!canSignRecord(r)).length;
+    const banner = viewOnly
+      ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber-text);
+           border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;font-size:13px;">
+           👁 其中 ${viewOnly} 筆是所屬分隊的紀錄，大隊帳號可以檢視但不能代為簽核，
+           請由該分隊自行簽核。</div>`
+      : '';
+    document.getElementById('supervisor-list').innerHTML=banner+pending.map(r=>{const sd=shiftToIso(r.shift); const mine=canSignRecord(r); return `
       <div class="card" id="card-${r.id}" style="margin-bottom:12px;">
         <div style="display:flex;align-items:flex-start;gap:12px;">
-          <input type="checkbox" class="batch-check" value="${r.id}" data-date="${sd}" data-light="${r.light}"
-            style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);margin-top:4px;flex-shrink:0;">
+          ${mine ? `<input type="checkbox" class="batch-check" value="${r.id}" data-date="${sd}" data-light="${r.light}"
+            style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);margin-top:4px;flex-shrink:0;">`
+          : `<span title="大隊帳號僅可檢視所屬分隊資料" style="width:18px;margin-top:2px;flex-shrink:0;opacity:.45;">👁</span>`}
           <div class="sup-card-inner">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
               <div>
@@ -1665,9 +1692,11 @@ async function loadSupervisor() {
             ${r.note?`<p style="font-size:12px;color:var(--muted);margin-bottom:6px;">備註：${r.note}</p>`:''}
             ${r.fatigue>3?`<p style="font-size:12px;color:var(--amber-text);margin-bottom:8px;">⚠️ 疲勞指數 ${r.fatigue}/5，請特別留意</p>`:''}
             <div class="sign-row" style="flex-wrap:wrap;gap:8px;">
+              ${mine ? `
               <input type="text" id="signer-${r.id}" placeholder="主管姓名" list="supervisors-list" autocomplete="off" style="max-width:130px;">
               ${dispositionSelect(r.id,r.light)}
-              <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" onclick="doSign('${r.id}','${r.light}')">確認簽核</button>
+              <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" onclick="doSign('${r.id}','${r.light}')">確認簽核</button>`
+              : `<span style="font-size:12px;color:var(--muted);padding:7px 0;">👁 僅可檢視 — 這筆請由 <b>${r.unit||''}</b> 自行簽核</span>`}
             </div>
           </div>
         </div>
@@ -1678,6 +1707,7 @@ async function loadSupervisor() {
 }
 
 async function doSign(id, light) {
+  if(!canSignId(id)){ toast('大隊帳號不能代替所屬分隊簽核'); return; }
   const signer=document.getElementById('signer-'+id).value.trim();
   const disp=getDisposition(id);
   if(!signer){ toast('請輸入主管姓名'); return; }
@@ -1716,7 +1746,8 @@ async function doBatchSign() {
   const errMsg=document.getElementById('batch-msg');
   errMsg.style.display='none';
   if(!signer){ errMsg.textContent='⚠️ 請填入主管姓名'; errMsg.style.display=''; return; }
-  const checkedEls=Array.from(document.querySelectorAll('.batch-check:checked'));
+  const checkedEls=Array.from(document.querySelectorAll('.batch-check:checked'))
+    .filter(c=>canSignId(c.value));
   const checked=checkedEls.map(c=>c.value);
   if(!checked.length){ errMsg.textContent='⚠️ 請先勾選要批次簽核的紀錄'; errMsg.style.display=''; return; }
   // 勾選中含紅／黃燈時，處置方式必填
