@@ -284,6 +284,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   body{background:#fff;}
   .card,.db-chart-box{break-inside:avoid;box-shadow:none;}
 }
+
+/* ── 主管審核：可簽核與僅可檢視分區 ── */
+.sup-sec{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-size:13px;font-weight:600;color:var(--text);margin:2px 0 10px;
+  padding-bottom:7px;border-bottom:2px solid var(--border2);}
+.sup-sec span{font-weight:500;font-size:12px;color:var(--muted);}
+.sup-details{margin-top:18px;border-top:2px solid var(--border2);padding-top:12px;}
+.sup-details>summary{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  cursor:pointer;list-style:none;font-size:13px;font-weight:600;color:var(--muted);
+  padding:2px 0 8px;}
+.sup-details>summary::-webkit-details-marker{display:none;}
+.sup-details>summary::after{content:'▾';margin-left:auto;font-size:11px;color:var(--hint);}
+.sup-details:not([open])>summary::after{content:'▸';}
+.sup-details>summary span{font-weight:500;font-size:12px;color:var(--muted);}
+.sup-details>summary:hover{color:var(--text);}
+.sup-hint{font-size:12px;color:var(--hint);margin:0 0 10px;}
+/* 僅可檢視的卡片視覺上減弱，一眼分得出來 */
+.sup-details .card{background:var(--bg);border-style:dashed;box-shadow:none;}
 </style>
 </head>
 <body>
@@ -1650,25 +1668,11 @@ const BADGE_HTML=lvl=>`<span class="badge ${lvl}"><span class="dot"></span>${{gr
 // ══════════════════════════════════════════════════════════════
 // 主管審核
 // ══════════════════════════════════════════════════════════════
-async function loadSupervisor() {
-  document.getElementById('supervisor-list').innerHTML='<div class="empty-state">載入中…</div>';
-  try{
-    const res=await apiGet({action:'getAll'});
-    const pending=filterByUser(res.data||[])
-      .filter(r=>String(r.signed)!=='true')
-      .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
-    if(!pending.length){
-      document.getElementById('supervisor-list').innerHTML='<div class="empty-state">目前無待簽核紀錄 🎉</div>'; return;
-    }
-    pending.forEach(r=>{ PENDING_UNIT[r.id]=r.unit||''; });
-    const viewOnly=pending.filter(r=>!canSignRecord(r)).length;
-    const banner = viewOnly
-      ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber-text);
-           border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;font-size:13px;">
-           👁 其中 ${viewOnly} 筆是所屬分隊的紀錄，大隊帳號可以檢視但不能代為簽核，
-           請由該分隊自行簽核。</div>`
-      : '';
-    document.getElementById('supervisor-list').innerHTML=banner+pending.map(r=>{const sd=shiftToIso(r.shift); const mine=canSignRecord(r); return `
+// 待簽核卡片（可簽核與僅可檢視共用同一份版型）
+function supCard(r){
+  const sd=shiftToIso(r.shift);
+  const mine=canSignRecord(r);
+  return `
       <div class="card" id="card-${r.id}" style="margin-bottom:12px;">
         <div style="display:flex;align-items:flex-start;gap:12px;">
           ${mine ? `<input type="checkbox" class="batch-check" value="${r.id}" data-date="${sd}" data-light="${r.light}"
@@ -1700,7 +1704,41 @@ async function loadSupervisor() {
             </div>
           </div>
         </div>
-      </div>`}).join('');
+      </div>`;
+}
+
+async function loadSupervisor() {
+  document.getElementById('supervisor-list').innerHTML='<div class="empty-state">載入中…</div>';
+  try{
+    const res=await apiGet({action:'getAll'});
+    const pending=filterByUser(res.data||[])
+      .filter(r=>String(r.signed)!=='true')
+      .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
+    if(!pending.length){
+      document.getElementById('supervisor-list').innerHTML='<div class="empty-state">目前無待簽核紀錄 🎉</div>'; return;
+    }
+    pending.forEach(r=>{ PENDING_UNIT[r.id]=r.unit||''; });
+    // 分成「要我簽的」和「只能看的」兩區，避免混在一起難以辨識
+    const mineList  = pending.filter(r=>canSignRecord(r));
+    const otherList = pending.filter(r=>!canSignRecord(r));
+    const tally = list => {
+      const rd=list.filter(x=>x.light==='red').length;
+      const am=list.filter(x=>x.light==='amber').length;
+      return list.length+' 筆'+(rd?'　🔴 '+rd:'')+(am?'　🟡 '+am:'');
+    };
+    let html='';
+    if(otherList.length) html+=`<div class="sup-sec">✍️ 待我簽核<span>${tally(mineList)}</span></div>`;
+    html += mineList.length
+      ? mineList.map(supCard).join('')
+      : `<div class="empty-state" style="padding:22px;">目前沒有需要你簽核的紀錄 🎉</div>`;
+    if(otherList.length){
+      html += `<details class="sup-details" open>
+        <summary>👁 所屬分隊紀錄・僅可檢視<span>${tally(otherList)}</span></summary>
+        <p class="sup-hint">大隊帳號可以掌握分隊狀況，但不能代為簽核，請由該分隊自行處理。</p>
+        ${otherList.map(supCard).join('')}
+      </details>`;
+    }
+    document.getElementById('supervisor-list').innerHTML=html;
   }catch(e){
     document.getElementById('supervisor-list').innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
   }
