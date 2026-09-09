@@ -437,7 +437,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 
   <div class="btn-row">
     <button class="btn btn-primary" onclick="doAssess()">🔍 判定燈號</button>
-    <button class="btn btn-ghost"   onclick="doSubmit()">☁️ 儲存至雲端</button>
+    <button class="btn btn-ghost" id="btn-submit" onclick="doSubmit()">☁️ 儲存至雲端</button>
     <button class="btn btn-ghost"   onclick="clearForm()">✕ 清除</button>
   </div>
   <p id="submit-msg" style="font-size:12px;color:var(--muted);margin-top:8px;display:none;"></p>
@@ -1629,7 +1629,20 @@ function getSymptoms(){
   return Array.from(document.querySelectorAll('#sym-group input:checked'))
     .map(c=>c.value).filter(v=>v!=='none').join(',')||'無';
 }
+// 送出中／剛送出完的鎖，避免連按或回到頁面後又按一次造成完全相同的重複紀錄
+let submitLock = false;
+const SUBMIT_COOLDOWN_MS = 5000;
+function setSubmitBtn(text, disabled) {
+  const b = document.getElementById('btn-submit');
+  if (!b) return;
+  b.textContent = text;
+  b.disabled = !!disabled;
+  b.style.opacity = disabled ? '.55' : '';
+  b.style.cursor  = disabled ? 'not-allowed' : '';
+}
+
 async function doSubmit() {
+  if (submitLock) { toast('剛剛才送出，請稍候再填下一筆'); return; }
   const vals={unit:document.getElementById('f-unit').value,name:document.getElementById('f-name').value,
     shift:document.getElementById('f-shift').value,sbp:document.getElementById('f-sbp').value,
     dbp:document.getElementById('f-dbp').value,hr:document.getElementById('f-hr').value,
@@ -1645,22 +1658,57 @@ async function doSubmit() {
     return;
   }
   if(!vals.sbp||!vals.dbp||!vals.hr||!vals.spo2||!vals.temp){ toast('請填寫所有生理數值'); return; }
+
+  // 填報日期把關：頁面若在手機上開著過夜，日期欄會停在昨天而不自覺，
+  // 造成紀錄被歸到前一天（統計上昨天多一筆、今天少一筆）
+  const today = todayIso();
+  if(!vals.shift){
+    toast('請選擇填報日期');
+    document.getElementById('f-shift').focus();
+    return;
+  }
+  if(vals.shift !== today){
+    const go = confirm('填報日期是 ' + vals.shift + '，不是今天（' + today + '）。\n\n'
+      + '若確實要補填該日資料，按「確定」繼續。\n'
+      + '若是日期沒有更新到（例如頁面開著過夜），請按「取消」，系統會幫你改回今天。');
+    if(!go){
+      document.getElementById('f-shift').value = today;
+      document.getElementById('f-shift').focus();
+      toast('已改回今天，請確認後再送出');
+      return;
+    }
+  }
+
+  submitLock = true;
+  setSubmitBtn('⏳ 儲存中…', true);
   showMsg('submit-msg','⏳ 儲存中…');
   try{
     const res=await apiPost({action:'submit',data:vals});
     const lvl=res.light;
     showMsg('submit-msg',`✓ 已儲存（${LIGHT_META[lvl].emoji} ${LIGHT_META[lvl].label}，ID: ${res.id}）`);
     toast('填報成功！');
-  }catch(e){ showMsg('submit-msg','✗ 儲存失敗：'+e.message); }
+    // 送出成功就清空，只留單位。不清的話數值會一直留在畫面上，
+    // 再按一次儲存就會送出一模一樣的第二筆（這是重複紀錄最主要的來源）
+    clearForm(true);
+    setSubmitBtn('✓ 已儲存', true);
+    setTimeout(function(){ submitLock=false; setSubmitBtn('☁️ 儲存至雲端', false); }, SUBMIT_COOLDOWN_MS);
+  }catch(e){
+    showMsg('submit-msg','✗ 儲存失敗：'+e.message);
+    // 失敗要讓他馬上能重試，而且資料要留著不能清
+    submitLock=false;
+    setSubmitBtn('☁️ 儲存至雲端', false);
+  }
 }
-function clearForm(){
+// keepMsg：送出成功後呼叫時要留著「已儲存」那列訊息，別把它一起藏掉
+function clearForm(keepMsg){
   ['f-name','f-sbp','f-dbp','f-hr','f-spo2','f-temp','f-note'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-shift').value=new Date().toISOString().split('T')[0];
   document.getElementById('f-fatigue').value=0; document.getElementById('fval').textContent='0';
   document.querySelectorAll('#sym-group input').forEach(c=>c.checked=false);
   document.getElementById('result-area').style.display='none';
   document.getElementById('danger-flag').style.display='none';
-  document.getElementById('submit-msg').style.display='none';
+  updateLiveBadges();
+  if(!keepMsg) document.getElementById('submit-msg').style.display='none';
 }
 
 // ── 燈號 badge ────────────────────────────────────────────────
