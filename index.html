@@ -461,7 +461,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       </div>
       <div class="field">
         <label>值班主管姓名</label>
-        <input id="batch-signer" type="text" placeholder="主管姓名" list="supervisors-list" autocomplete="off">
+        <input id="batch-signer" type="text" placeholder="主管姓名" list="supervisors-list" autocomplete="off"
+               oninput="syncSigner(this.value, this)">
         <datalist id="supervisors-list"></datalist>
       </div>
       <div class="field full">
@@ -1668,6 +1669,19 @@ const BADGE_HTML=lvl=>`<span class="badge ${lvl}"><span class="dot"></span>${{gr
 // ══════════════════════════════════════════════════════════════
 // 主管審核
 // ══════════════════════════════════════════════════════════════
+// 值班主管姓名：批次欄與每張卡片共用同一個值。
+// 同一班通常就是同一位主管簽到底，不要讓他每筆都重打。
+// 只存在記憶體，不寫 localStorage——避免隔天換班時沒發現還帶著前一班的名字。
+let CURRENT_SIGNER = '';
+function syncSigner(val, fromEl){
+  CURRENT_SIGNER = val;
+  const b = document.getElementById('batch-signer');
+  if (b && b !== fromEl) b.value = val;
+  document.querySelectorAll('#supervisor-list input[id^="signer-"]').forEach(function(el){
+    if (el !== fromEl) el.value = val;
+  });
+}
+
 // 待簽核卡片（可簽核與僅可檢視共用同一份版型）
 function supCard(r){
   const sd=shiftToIso(r.shift);
@@ -1697,7 +1711,8 @@ function supCard(r){
             ${r.fatigue>3?`<p style="font-size:12px;color:var(--amber-text);margin-bottom:8px;">⚠️ 疲勞指數 ${r.fatigue}/5，請特別留意</p>`:''}
             <div class="sign-row" style="flex-wrap:wrap;gap:8px;">
               ${mine ? `
-              <input type="text" id="signer-${r.id}" placeholder="主管姓名" list="supervisors-list" autocomplete="off" style="max-width:130px;">
+              <input type="text" id="signer-${r.id}" placeholder="主管姓名" list="supervisors-list" autocomplete="off"
+                     value="${escHtml(CURRENT_SIGNER)}" oninput="syncSigner(this.value, this)" style="max-width:130px;">
               ${dispositionSelect(r.id,r.light)}
               <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" onclick="doSign('${r.id}','${r.light}')">確認簽核</button>`
               : `<span style="font-size:12px;color:var(--muted);padding:7px 0;">👁 僅可檢視 — 這筆請由 <b>${r.unit||''}</b> 自行簽核</span>`}
