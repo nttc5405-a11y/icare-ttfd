@@ -1329,15 +1329,15 @@ function fetchWithTimeout(url, opts={}, ms=15000) {
   const tid=setTimeout(()=>ctrl.abort(),ms);
   return fetch(url,{...opts,signal:ctrl.signal}).finally(()=>clearTimeout(tid));
 }
-async function _rawApiGet(params) {
+async function _rawApiGet(params, ms) {
   const q=new URLSearchParams({token:GAS_TOKEN,...params});
-  const r=await fetchWithTimeout(`${GAS_URL}?${q}`);
+  const r=await fetchWithTimeout(`${GAS_URL}?${q}`, {}, ms || 15000);
   const j=await r.json();
   if(j.status==='error') throw new Error(j.message);
   return j;
 }
-async function _rawApiPost(body) {
-  const r=await fetchWithTimeout(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({token:GAS_TOKEN,...body})});
+async function _rawApiPost(body, ms) {
+  const r=await fetchWithTimeout(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({token:GAS_TOKEN,...body})}, ms || 15000);
   const j=await r.json();
   if(j.status==='error') throw new Error(j.message);
   return j;
@@ -1359,6 +1359,61 @@ async function apiPost(body) {
       catch(e) { if(i===2) throw e; await new Promise(r=>setTimeout(r,(i+1)*2000)); }
     }
   });
+}
+
+// ── 填報專用的送出流程 ────────────────────────────────────────
+// 為什麼不用上面的 apiPost：apiPost 等不到回應就會自動重送最多 3 次。
+// 對「查詢」「簽核」是對的（重複做結果一樣），對「填報」卻是災難——
+// 瀏覽器等不到回應不代表 Google 那邊沒寫進去，盲目重送就會產生
+// 一模一樣的重複紀錄，而且畫面還是顯示成功，沒有人會發現。
+// 實測 Apps Script 連「什麼都不做」的請求都可能跑到 50 秒以上，
+// 所以這裡改成：等久一點；真的超時就先「查有沒有寫進去」，
+// 確認沒有才重送。查不動的時候寧可停下來問人，也不要亂猜。
+const SUBMIT_TIMEOUT_MS = 40000;
+const VERIFY_TIMEOUT_MS = 30000;
+
+function submitOnce(vals) {
+  return RequestQueue.add(() => _rawApiPost({action:'submit',data:vals}, SUBMIT_TIMEOUT_MS));
+}
+
+// 找出「今天、同單位、同姓名、五項數值完全相同」的紀錄，沒有就回 null。
+// 注意：查不到（回 null）跟查詢本身失敗（丟例外）必須分清楚，
+// 把查詢失敗當成「沒寫進去」就會誤判而重送，等於白改。
+async function findMyRecord(vals) {
+  const res = await RequestQueue.add(
+    () => _rawApiGet({action:'getAll', today:'true', unit:vals.unit}, VERIFY_TIMEOUT_MS));
+  const list = (res && res.data) || [];
+  const same = (a,b) => a!==''&&a!=null&&b!==''&&b!=null&&Number(a)===Number(b);
+  const hit = list.filter(r =>
+    String(r.name||'').trim() === vals.name &&
+    same(r.sbp,vals.sbp) && same(r.dbp,vals.dbp) && same(r.hr,vals.hr) &&
+    same(r.spo2,vals.spo2) && same(r.temp,vals.temp));
+  if(!hit.length) return null;
+  hit.sort((a,b)=>String(a.timestamp||'').localeCompare(String(b.timestamp||'')));
+  return hit[hit.length-1];
+}
+
+// 送出一筆填報，並保證不會因為等不到回應就重複寫入。
+// 回傳 {light, id, via}，via 說明這筆是怎麼來的：
+//   'ok'     一次就成功
+//   'found'  送出沒回應，但查證後確定已經寫進去了（沒有重送）
+//   'resent' 送出沒回應，查證確定沒寫進去，重送才成功
+// 無法確定有沒有寫進去時丟出 Error('UNSURE')。
+async function submitWithVerify(vals) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await submitOnce(vals);
+      return { light: res.light, id: res.id, via: attempt === 1 ? 'ok' : 'resent' };
+    } catch (err) {
+      showMsg('submit-msg','⏳ 沒收到回應，正在確認是否已經存進去，請勿重按…');
+      let found;
+      try { found = await findMyRecord(vals); }
+      catch (e) { throw new Error('UNSURE'); }
+      if (found) return { light: found.light, id: found.id, via: 'found' };
+      if (attempt === 2) throw err;
+      showMsg('submit-msg','⏳ 已確認尚未存入，正在重新送出…');
+    }
+  }
 }
 
 // ── 配額監控（走佇列，避免在填報/簽核高峰時插隊）──────────
@@ -1641,6 +1696,18 @@ function setSubmitBtn(text, disabled) {
   b.style.cursor  = disabled ? 'not-allowed' : '';
 }
 
+// 等待期間的安撫訊息。Apps Script 回應慢是常態（實測可能超過 40 秒），
+// 畫面沒動靜同仁會以為當掉而重按，所以要主動說「還在跑」。
+let submitTimers = [];
+function stopSubmitProgress(){ submitTimers.forEach(clearTimeout); submitTimers = []; }
+function startSubmitProgress(){
+  stopSubmitProgress();
+  submitTimers.push(setTimeout(function(){
+    showMsg('submit-msg','⏳ 雲端回應較慢，仍在儲存中，請勿重按…'); }, 8000));
+  submitTimers.push(setTimeout(function(){
+    showMsg('submit-msg','⏳ 還在等雲端回應（最多約 40 秒，這是正常的），請不要關閉頁面…'); }, 20000));
+}
+
 async function doSubmit() {
   if (submitLock) { toast('剛剛才送出，請稍候再填下一筆'); return; }
   const vals={unit:document.getElementById('f-unit').value,name:document.getElementById('f-name').value,
@@ -1682,10 +1749,17 @@ async function doSubmit() {
   submitLock = true;
   setSubmitBtn('⏳ 儲存中…', true);
   showMsg('submit-msg','⏳ 儲存中…');
+  startSubmitProgress();
   try{
-    const res=await apiPost({action:'submit',data:vals});
-    const lvl=res.light;
-    showMsg('submit-msg',`✓ 已儲存（${LIGHT_META[lvl].emoji} ${LIGHT_META[lvl].label}，ID: ${res.id}）`);
+    const r=await submitWithVerify(vals);
+    stopSubmitProgress();
+    const meta=LIGHT_META[r.light];
+    // 措辭要對得起實際發生的事：'found' 是真的查到既有那筆（確定沒重複），
+    // 'resent' 是查過沒有才重送（絕大多數情況沒重複，但不敢把話說死）
+    const tail = r.via==='found'  ? '　※ 雲端回應較慢，這筆先前已存入，系統沒有重複送出'
+               : r.via==='resent' ? '　※ 雲端回應較慢，已重新送出成功'
+               : '';
+    showMsg('submit-msg','✓ 已儲存（'+(meta?meta.emoji+' '+meta.label:r.light)+'，ID: '+r.id+'）'+tail);
     toast('填報成功！');
     // 送出成功就清空，只留單位。不清的話數值會一直留在畫面上，
     // 再按一次儲存就會送出一模一樣的第二筆（這是重複紀錄最主要的來源）
@@ -1693,7 +1767,16 @@ async function doSubmit() {
     setSubmitBtn('✓ 已儲存', true);
     setTimeout(function(){ submitLock=false; setSubmitBtn('☁️ 儲存至雲端', false); }, SUBMIT_COOLDOWN_MS);
   }catch(e){
-    showMsg('submit-msg','✗ 儲存失敗：'+e.message);
+    stopSubmitProgress();
+    if(e && e.message === 'UNSURE'){
+      // 送出和查證都沒回應——兩邊都不確定。這時候自作主張重送會製造重複，
+      // 自作主張說成功又可能漏掉紀錄，所以停下來讓人去問看得到紀錄的主管。
+      showMsg('submit-msg','⚠️ 網路不穩，無法確認這筆有沒有存進去。'
+        + '請先請值班主管在「主管審核」查看有沒有收到你這筆；確定沒有再按一次儲存，不要連按。');
+      toast('無法確認是否已儲存');
+    } else {
+      showMsg('submit-msg','✗ 儲存失敗：'+e.message);
+    }
     // 失敗要讓他馬上能重試，而且資料要留著不能清
     submitLock=false;
     setSubmitBtn('☁️ 儲存至雲端', false);
