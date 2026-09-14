@@ -182,6 +182,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;
   color:var(--red-text);margin-bottom:12px;display:none;}
 
+/* 數值明顯打錯時的即時提醒（打字當下就出現，不等送出） */
+.vital-warn{background:var(--red-bg);border:1px solid var(--red-bd);
+  border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;
+  color:var(--red-text);margin-top:12px;line-height:1.7;}
+.vital-warn.soft{background:var(--amber-bg);border-color:var(--amber-bd);
+  color:var(--amber-text);}
+
 /* ── 儀表板 ── */
 .db-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
 .db-stat{background:var(--bg);border-radius:var(--radius);padding:14px 16px;border-left:4px solid;position:relative;}
@@ -407,6 +414,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
         </div>
       </div>
     </div>
+    <!-- 打字當下就提醒明顯打錯的數值，不要等到存進試算表才由後端檢查抓出來 -->
+    <div id="vital-warn" class="vital-warn" style="display:none;"></div>
   </div>
 
   <div class="card">
@@ -1726,6 +1735,25 @@ async function doSubmit() {
   }
   if(!vals.sbp||!vals.dbp||!vals.hr||!vals.spo2||!vals.temp){ toast('請填寫所有生理數值'); return; }
 
+  // 數值把關：不可能的值直接擋下，罕見到幾乎一定打錯的值請他再確認一次。
+  // 在這裡擋掉，就不必等資料進了試算表才由「資料品質檢查」事後補救。
+  const vw = checkVitals();
+  if(vw.hard.length){
+    renderVitalWarn();
+    toast('數值有誤，請修正後再儲存');
+    showMsg('submit-msg','✗ 無法儲存：'+vw.hard.join('；'));
+    const bad=Object.keys(VITAL_SANE).map(function(k){ return VITAL_SANE[k]; })
+      .filter(function(s){ const v=Number(document.getElementById(s.id).value);
+        return document.getElementById(s.id).value!=='' && (v>s.hardHi||v<s.hardLo||isNaN(v)); })[0];
+    if(bad){ document.getElementById(bad.id).focus(); }
+    return;
+  }
+  if(vw.soft.length){
+    const go = confirm('以下數值很少見，請再確認一次：\n\n　'+vw.soft.join('\n　')
+      + '\n\n確定沒有打錯，按「確定」繼續儲存。\n要回去修改請按「取消」。');
+    if(!go) return;
+  }
+
   // 填報日期把關：頁面若在手機上開著過夜，日期欄會停在昨天而不自覺，
   // 造成紀錄被歸到前一天（統計上昨天多一筆、今天少一筆）
   const today = todayIso();
@@ -2392,7 +2420,67 @@ function setBadge(id, lvl) {
   el.textContent=LIVE_LABELS[lvl];
   el.style.display='';
 }
+// ── 數值把關 ──────────────────────────────────────────────────
+// hard 範圍跟後端「資料品質檢查」的 DASH_SANE 完全一致，不然會出現
+// 「表單放行、事後檢查又標成數值離譜」的矛盾。
+//   超出 hard ＝ 物理上不可能（血氧 101、體溫 365），直接擋住不讓送出
+//   超出 soft ＝ 罕見到幾乎一定是打錯，送出前跳確認，但仍可送
+// soft 邊界刻意拉得比紅燈標準寬很多：收縮壓 165 本來就是系統要記錄的
+// 紅燈值，不能拿這種數字去煩填報的人。
+const VITAL_SANE = {
+  sbp : { id:'f-sbp',  name:'收縮壓', unit:'',     hardLo:60, hardHi:260, softLo:80,   softHi:220 },
+  dbp : { id:'f-dbp',  name:'舒張壓', unit:'',     hardLo:30, hardHi:160, softLo:40,   softHi:130 },
+  hr  : { id:'f-hr',   name:'心率',   unit:' bpm', hardLo:30, hardHi:220, softLo:35,   softHi:190 },
+  spo2: { id:'f-spo2', name:'血氧',   unit:'%',    hardLo:50, hardHi:100, softLo:85,   softHi:100 },
+  temp: { id:'f-temp', name:'體溫',   unit:'℃',    hardLo:30, hardHi:43,  softLo:34.5, softHi:41  },
+};
+
+// 回傳 {hard:[訊息…], soft:[訊息…]}；空欄位不檢查（必填與否由 doSubmit 管）
+function checkVitals() {
+  const hard=[], softBy={};
+  Object.keys(VITAL_SANE).forEach(function(k){
+    const s=VITAL_SANE[k];
+    const el=document.getElementById(s.id);
+    if(!el || el.value==='') return;
+    const v=Number(el.value);
+    if(isNaN(v)){ hard.push(s.name+'不是有效的數字'); return; }
+    if(v>s.hardHi)      hard.push(s.name+'不可能超過 '+s.hardHi+s.unit+'（目前填 '+v+'）');
+    else if(v<s.hardLo) hard.push(s.name+'不可能低於 '+s.hardLo+s.unit+'（目前填 '+v+'）');
+    else if(v>s.softHi || v<s.softLo) softBy[k]=s.name+' '+v+s.unit+' 非常罕見';
+  });
+  // 收縮壓一定大於舒張壓；相等或相反幾乎都是兩格打反了。
+  // 這種情況下血壓「偏低／偏高」是打反造成的症狀，只講打反就好，不要重複唸。
+  const sbp=Number(document.getElementById('f-sbp').value);
+  const dbp=Number(document.getElementById('f-dbp').value);
+  let swap=null;
+  if(sbp && dbp && sbp<=dbp){
+    swap='收縮壓 '+sbp+' 沒有大於舒張壓 '+dbp+'，兩格是不是打反了';
+    delete softBy.sbp; delete softBy.dbp;
+  }
+  const soft=Object.keys(softBy).map(function(k){ return softBy[k]; });
+  if(swap) soft.push(swap);
+  return { hard:hard, soft:soft };
+}
+
+// 打字當下就把問題顯示出來，不必等按儲存
+function renderVitalWarn() {
+  const box=document.getElementById('vital-warn');
+  if(!box) return;
+  const w=checkVitals();
+  if(w.hard.length){
+    box.className='vital-warn';
+    box.innerHTML='⛔ '+w.hard.join('<br>⛔ ')+'<br>這樣的數值無法儲存，請先修正。';
+  } else if(w.soft.length){
+    box.className='vital-warn soft';
+    box.innerHTML='⚠️ '+w.soft.join('<br>⚠️ ')+'<br>確認沒有打錯的話，仍然可以儲存。';
+  } else {
+    box.style.display='none'; box.innerHTML=''; return;
+  }
+  box.style.display='';
+}
+
 function updateLiveBadges() {
+  renderVitalWarn();
   const sbp=+document.getElementById('f-sbp').value;
   const dbp=+document.getElementById('f-dbp').value;
   const hr =+document.getElementById('f-hr').value;
