@@ -670,7 +670,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
           border-radius:var(--radius-sm);font-size:13px;background:var(--surface);color:var(--text);">
         <button class="btn btn-primary" style="font-size:13px;padding:7px 13px;" onclick="saveAdminPwdBtn()">更新</button>
         <button class="btn btn-ghost" style="font-size:13px;padding:7px 13px;"
-          onclick="settingsUnlocked=false;toast('⚙️ 設定頁已重新鎖定')">重新鎖定設定</button>
+          onclick="settingsUnlocked=false;ADMIN_PWD_ENTERED='';toast('⚙️ 設定頁已重新鎖定')">重新鎖定設定</button>
       </div>
     </div>
   </div>
@@ -853,7 +853,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 <script>
 // ── 硬寫設定 ──────────────────────────────────────────────────
 const GAS_URL   = 'https://script.google.com/macros/s/AKfycbyL8WZ-BEdlliidtlayL_5nlp4wZQ_zudjbyDLhf7RiUkSlV72KOZFD6kzTH4OaP6LFXg/exec';
-const GAS_TOKEN = 'icare_2025_CHANGE_ME';
+// ⚠️ 部署前必改：跟後端 icare-gas-backend.js 的 CONFIG.TOKEN 填同一組你自己想的亂碼
+const GAS_TOKEN = 'ttfd_icare_system2026';
 
 // ── 單位結構（預設值 / 離線備援）────────────────────────────
 // 正式資料由 GAS accounts/units 分頁管理；載入失敗時使用此備援
@@ -928,9 +929,13 @@ const LS = {
 let currentUser      = null;
 let settingsUnlocked = false;
 let pendingTab       = null;
+// 兩者都只存在瀏覽器記憶體(重新整理頁面就會消失，不寫進 localStorage)，
+// 用來在呼叫需要身分驗證的 API 時附上密碼，密碼本身不落地保存。
+let SESSION_PWD      = ''; // 單位登入密碼（給 getAll/getStats 用）
+let ADMIN_PWD_ENTERED = ''; // 管理員密碼（給 getAccounts/saveAccount/設定頁全域查詢用）
 
-function getAdminPwd(){ return LS.get('admin_pwd','') || 'admin0000'; }
-function saveAdminPwd(p){ LS.set('admin_pwd',p); }
+// 管理員密碼比對已搬到後端（verifyAdminCredential／Script Properties），
+// 這裡原本的 getAdminPwd()/saveAdminPwd() 是純前端比對，已移除。
 
 // ── 從 GAS 載入單位結構 ───────────────────────────────────────
 async function loadUnitsFromServer() {
@@ -980,6 +985,18 @@ function filterByUser(data) {
   if(!currentUser||!currentUser.visibleUnits||!currentUser.visibleUnits.length) return data;
   return data.filter(r=>currentUser.visibleUnits.includes(r.unit));
 }
+// 呼叫 getAll/getStats 等受保護 API 前先確認記憶體裡還有密碼可用；
+// 重新整理頁面後 currentUser 會從 localStorage 還原、但密碼不會，
+// 這種情況請使用者重新登入一次以確認身分，而不是直接失敗給一個看不懂的錯誤。
+function requireSessionCredential() {
+  if (currentUser && SESSION_PWD) return true;
+  toast('⚠️ 請重新登入以確認身分');
+  currentUser = null; SESSION_PWD = ''; LS.set('currentUser', '');
+  updateUserDisplay();
+  pendingTab = null;
+  showLoginModal();
+  return false;
+}
 
 // ── 登入 ──────────────────────────────────────────────────────
 function showLoginModal() {
@@ -1024,6 +1041,7 @@ async function doLogin() {
       const account = { role:res.role, brigade:res.brigade, unit:unitName };
       currentUser = { unitName, role:res.role, brigade:res.brigade, visibleUnits:getVisibleUnits(account),
         supervisors:[res.sup1,res.sup2,res.sup3].filter(Boolean) };
+      SESSION_PWD = password; // 只存在記憶體，供 getAll/getStats 等受保護動作使用，重新整理頁面就會消失
       updateSupervisorDatalist();
       LS.set('currentUser', JSON.stringify(currentUser));
       hideLoginModal();
@@ -1046,7 +1064,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  currentUser=null; pendingTab=null; settingsUnlocked=false;
+  currentUser=null; pendingTab=null; settingsUnlocked=false; SESSION_PWD=''; ADMIN_PWD_ENTERED='';
   LS.set('currentUser','');
   updateUserDisplay();
   goTab('submit');
@@ -1076,7 +1094,8 @@ function updateUserDisplay() {
 
 // ── 設定頁解鎖 ────────────────────────────────────────────────
 function checkAndGoSettings() {
-  if(!settingsUnlocked){
+  if(!settingsUnlocked || !ADMIN_PWD_ENTERED){
+    settingsUnlocked = false;
     document.getElementById('settings-modal').classList.add('show');
     document.getElementById('settings-pwd-input').value='';
     document.getElementById('settings-pwd-error').style.display='none';
@@ -1085,22 +1104,37 @@ function checkAndGoSettings() {
   }
   goTab('settings');
 }
+// 設定頁裡呼叫 getAccounts/saveAccount/全域查詢前先確認記憶體裡還有管理員密碼；
+// 重新整理頁面後 settingsUnlocked、ADMIN_PWD_ENTERED 都會消失，需要重新輸入一次。
+function requireAdminCredential() {
+  if (settingsUnlocked && ADMIN_PWD_ENTERED) return true;
+  toast('⚠️ 請重新輸入管理員密碼');
+  checkAndGoSettings();
+  return false;
+}
 function closeSettingsModal(){ document.getElementById('settings-modal').classList.remove('show'); }
-function doSettingsLogin() {
+async function doSettingsLogin() {
+  const entered=document.getElementById('settings-pwd-input').value;
+  const btn=document.querySelector('#settings-modal .btn-primary');
+  if(btn) btn.textContent='驗證中…';
   try {
-    const entered=document.getElementById('settings-pwd-input').value;
-    if(entered===getAdminPwd()){
+    const res = await apiPost({ action:'adminLogin', password: entered });
+    if(res.status==='ok'){
       settingsUnlocked=true;
+      ADMIN_PWD_ENTERED=entered; // 只存記憶體，供後續 getAccounts/saveAccount/全域查詢使用
       document.getElementById('settings-modal').classList.remove('show');
       goTab('settings');
     } else {
+      document.getElementById('settings-pwd-error').textContent='密碼錯誤，請再試一次';
       document.getElementById('settings-pwd-error').style.display='block';
       document.getElementById('settings-pwd-input').value='';
       document.getElementById('settings-pwd-input').focus();
     }
   } catch(e) {
-    document.getElementById('settings-pwd-error').textContent='發生錯誤：'+e.message;
+    document.getElementById('settings-pwd-error').textContent='連線失敗：'+e.message;
     document.getElementById('settings-pwd-error').style.display='block';
+  } finally {
+    if(btn) btn.textContent='確認';
   }
 }
 function getSupervisors(){ return (currentUser&&currentUser.supervisors)||[]; }
@@ -1122,21 +1156,28 @@ function loadSupervisorsIntoSettings(){
     if(el) el.value=names[idx]||'';
   });
 }
-function saveAdminPwdBtn() {
+async function saveAdminPwdBtn() {
   const v=document.getElementById('cfg-admin-pwd').value.trim();
   if(!v){ toast('請輸入新管理員密碼'); return; }
-  saveAdminPwd(v);
-  document.getElementById('cfg-admin-pwd').value='';
-  toast('✓ 管理員密碼已更新');
+  if(!requireAdminCredential()) return;
+  try {
+    await apiPost({ action:'changeAdminPwd', oldPassword: ADMIN_PWD_ENTERED, newPassword: v });
+    ADMIN_PWD_ENTERED = v; // 密碼已在後端更新，記憶體裡也同步換成新的，設定頁內不用重新登入
+    document.getElementById('cfg-admin-pwd').value='';
+    toast('✓ 管理員密碼已更新');
+  } catch(e) {
+    toast('更新失敗：'+e.message);
+  }
 }
 
 // ── 帳號管理表格（從 GAS 讀取）──────────────────────────────
 async function buildAccountsTable() {
   const container=document.getElementById('accounts-container');
   if(!container) return;
+  if(!requireAdminCredential()) return;
   container.innerHTML='<div class="empty-state">載入帳號資料中…</div>';
   try {
-    const res = await apiGet({ action:'getAccounts' });
+    const res = await apiGet({ action:'getAccounts', adminPassword: ADMIN_PWD_ENTERED });
     const accounts = res.accounts || [];
     // 依 brigade 分群
     const byBrigade = {};
@@ -1147,7 +1188,8 @@ async function buildAccountsTable() {
     });
     let html = `<p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
       💡 帳號結構請直接在 Google Sheets 的 <strong>units</strong>（單位）及 <strong>accounts</strong>（帳號）分頁調整。
-      密碼與值班主管名單可在此快速修改，主管名單登入後自動帶入簽核快速選單。</p>`;
+      主管名單可在此快速修改，登入後自動帶入簽核快速選單。基於資安考量，這裡不再顯示現有密碼，
+      密碼欄留空表示不變更，只有輸入新密碼並按儲存才會覆蓋。</p>`;
     Object.entries(byBrigade).forEach(([brigade, list]) => {
       html += `<div class="acc-section"><div class="acc-brigade-header">🏢 ${brigade}</div>`;
       list.forEach(a => {
@@ -1158,10 +1200,11 @@ async function buildAccountsTable() {
             ${isBrigade?'':'└ '}${escHtml(a.unit)}</span>
           <span class="acc-role-tag ${isBrigade?'brigade':'subunit'}">${isBrigade?'大隊':'分隊'}</span>
           <input type="text" class="acc-pwd-input" id="acc-${k}"
-            value="${escHtml(a.password)}" placeholder="密碼"
+            value="" placeholder="留空＝不變更密碼"
             onchange="markDirty('${k}')">
           <button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;display:none;" id="save-${k}"
-            onclick="saveSingleAccount('${escHtml(a.unit)}','${k}')">儲存</button>
+            data-unit="${escHtml(a.unit)}" data-key="${k}"
+            onclick="saveSingleAccount(this.dataset.unit,this.dataset.key)">儲存</button>
         </div>
         <div style="padding-left:${isBrigade?'0':'14px'};display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
           <input type="text" id="sup1-${k}" value="${escHtml(a.sup1||'')}" placeholder="值班主管 1"
@@ -1188,19 +1231,23 @@ function markDirty(k) {
 }
 function markPwdDirty(k){ markDirty(k); } // 相容舊呼叫
 async function saveSingleAccount(unit, k) {
+  if(!requireAdminCredential()) return;
   const pwdInput=document.getElementById('acc-'+k);
   const btn=document.getElementById('save-'+k);
-  if(!pwdInput||!pwdInput.value.trim()){ toast('密碼不可空白'); return; }
+  const newPwd=(pwdInput?.value||'').trim();
+  const sup1=(document.getElementById('sup1-'+k)?.value||'').trim();
+  const sup2=(document.getElementById('sup2-'+k)?.value||'').trim();
+  const sup3=(document.getElementById('sup3-'+k)?.value||'').trim();
+  if(!newPwd && !sup1 && !sup2 && !sup3){ toast('沒有要更新的內容'); return; }
   if(btn) btn.textContent='儲存中…';
   try {
     const payload = {
-      action:'saveAccount', unit,
-      password: pwdInput.value.trim(),
-      sup1: (document.getElementById('sup1-'+k)?.value||'').trim(),
-      sup2: (document.getElementById('sup2-'+k)?.value||'').trim(),
-      sup3: (document.getElementById('sup3-'+k)?.value||'').trim(),
+      action:'saveAccount', unit, adminPassword: ADMIN_PWD_ENTERED,
+      sup1, sup2, sup3,
     };
+    if(newPwd) payload.password = newPwd; // 留空就不送，後端會保留原密碼
     await apiPost(payload);
+    if(pwdInput) pwdInput.value='';
     if(btn){ btn.textContent='✓'; setTimeout(()=>{ btn.textContent='儲存'; btn.style.display='none'; },1200); }
     toast('✓ '+unit+' 已更新');
   } catch(e) {
@@ -1211,6 +1258,7 @@ async function saveSingleAccount(unit, k) {
 async function saveSinglePassword(unit, k){ await saveSingleAccount(unit, k); }
 // 保留相容舊 UI 按鈕
 async function saveAllPasswords() {
+  if(!requireAdminCredential()) return;
   const inputs=document.querySelectorAll('.acc-pwd-input');
   if(!inputs.length){ toast('尚無帳號資料'); return; }
   showMsg('accounts-msg','⏳ 批次儲存中…');
@@ -1219,13 +1267,13 @@ async function saveAllPasswords() {
     const k=input.id.replace('acc-','');
     const unit=decodeURIComponent(k);
     if(!input.value.trim()) continue;
-    try{ await apiPost({action:'saveAccount',unit,password:input.value.trim()}); ok++; }
+    try{ await apiPost({action:'saveAccount',unit,password:input.value.trim(),adminPassword:ADMIN_PWD_ENTERED}); ok++; }
     catch(e){ fail++; }
   }
   showMsg('accounts-msg', `✓ 已儲存 ${ok} 筆${fail?'、'+fail+' 筆失敗':''}`);
   toast('✓ 帳號密碼批次更新完成');
 }
-function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── 鎖定分頁控制 ─────────────────────────────────────────────
 const LOCKED_TABS = ['supervisor','history','trend'];
@@ -1546,6 +1594,7 @@ function populateAdminUnits(){
 }
 
 async function loadAdminHistory(){
+  if(!requireAdminCredential()) return;
   const msg=document.getElementById('admin-query-msg');
   const container=document.getElementById('admin-history-table');
   msg.style.display='none';
@@ -1559,7 +1608,7 @@ async function loadAdminHistory(){
   const signed  =document.getElementById('admin-signed').value;
 
   try{
-    const params={action:'getAll'};
+    const params={action:'getAll', adminPassword: ADMIN_PWD_ENTERED};
     if(light)    params.light    = light;
     if(dateFrom) params.dateFrom = dateFrom;
     if(dateTo)   params.dateTo   = dateTo;
@@ -1584,11 +1633,11 @@ async function loadAdminHistory(){
 
     const rows=data.map(r=>{
       const le=r.light==='red'?'🔴':r.light==='amber'?'🟡':'🟢';
-      const sg=String(r.signed)==='true'?`✅ ${r.signer||''}`:' — ';
+      const sg=String(r.signed)==='true'?`✅ ${escHtml(r.signer)||''}`:' — ';
       return `<tr>
-        <td style="white-space:nowrap;font-size:11px;">${r.shift||tsDate(r.timestamp)}</td>
-        <td style="font-weight:600;">${r.name||'—'}</td>
-        <td style="font-size:12px;">${r.unit||'—'}</td>
+        <td style="white-space:nowrap;font-size:11px;">${escHtml(r.shift||tsDate(r.timestamp))}</td>
+        <td style="font-weight:600;">${escHtml(r.name)||'—'}</td>
+        <td style="font-size:12px;">${escHtml(r.unit)||'—'}</td>
         <td>${le}</td>
         <td>${r.sbp}/${r.dbp}</td><td>${r.hr}</td>
         <td>${r.spo2}%</td><td>${r.temp}℃</td>
@@ -1620,11 +1669,12 @@ let CRITERIA = {
   temp: { red_high:38.0, red_low:35.5, amber_high:37.5, amber_low:null },
 };
 async function initAllSheets() {
+  if (!requireAdminCredential()) return;
   const msg = document.getElementById('init-sheets-msg');
   msg.textContent = '⏳ 初始化中…'; msg.style.display = 'block';
   try {
     const actions = ['getUnits','getAccounts','getDispositions','getCriteria','ping'];
-    const results = await Promise.all(actions.map(action => apiGet({ action }).catch(e => ({ status:'error', action, e }))));
+    const results = await Promise.all(actions.map(action => apiGet({ action, adminPassword: ADMIN_PWD_ENTERED }).catch(e => ({ status:'error', action, e }))));
     const failed  = results.filter(r => r.status !== 'ok');
     if (failed.length) {
       msg.textContent = `⚠️ 部分失敗：${failed.map(r=>r.action||'unknown').join('、')}，請確認已重新部署 GAS。`;
@@ -1854,8 +1904,8 @@ function supCard(r){
           <div class="sup-card-inner">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
               <div>
-                <div style="font-size:16px;font-weight:700;">${r.name||'（未填）'}</div>
-                <div style="font-size:12px;color:var(--muted);">${r.unit||''} · ${r.shift||''} · ${r.timestamp||''}</div>
+                <div style="font-size:16px;font-weight:700;">${escHtml(r.name)||'（未填）'}</div>
+                <div style="font-size:12px;color:var(--muted);">${escHtml(r.unit)||''} · ${escHtml(r.shift)||''} · ${escHtml(r.timestamp)||''}</div>
               </div>
               ${BADGE_HTML(r.light)}
             </div>
@@ -1865,16 +1915,16 @@ function supCard(r){
               <div class="ind-card"><div class="ind-val">${r.spo2}%</div><div class="ind-lab">血氧</div></div>
               <div class="ind-card"><div class="ind-val">${r.temp}℃</div><div class="ind-lab">體溫</div></div>
             </div>
-            ${r.symptoms&&r.symptoms!=='無'?`<p style="font-size:12px;color:var(--red-text);margin-bottom:6px;">⚠️ 症狀：${r.symptoms}</p>`:''}
-            ${r.note?`<p style="font-size:12px;color:var(--muted);margin-bottom:6px;">備註：${r.note}</p>`:''}
+            ${r.symptoms&&r.symptoms!=='無'?`<p style="font-size:12px;color:var(--red-text);margin-bottom:6px;">⚠️ 症狀：${escHtml(r.symptoms)}</p>`:''}
+            ${r.note?`<p style="font-size:12px;color:var(--muted);margin-bottom:6px;">備註：${escHtml(r.note)}</p>`:''}
             ${r.fatigue>3?`<p style="font-size:12px;color:var(--amber-text);margin-bottom:8px;">⚠️ 疲勞指數 ${r.fatigue}/5，請特別留意</p>`:''}
             <div class="sign-row" style="flex-wrap:wrap;gap:8px;">
               ${mine ? `
               <input type="text" id="signer-${r.id}" placeholder="主管姓名" list="supervisors-list" autocomplete="off"
                      value="${escHtml(CURRENT_SIGNER)}" oninput="syncSigner(this.value, this)" style="max-width:130px;">
               ${dispositionSelect(r.id,r.light)}
-              <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" onclick="doSign('${r.id}','${r.light}')">確認簽核</button>`
-              : `<span style="font-size:12px;color:var(--muted);padding:7px 0;">👁 僅可檢視 — 這筆請由 <b>${r.unit||''}</b> 自行簽核</span>`}
+              <button class="btn btn-primary" style="font-size:13px;padding:7px 14px;white-space:nowrap;" data-sign-id="${escHtml(r.id)}" data-sign-light="${escHtml(r.light)}" onclick="doSign(this.dataset.signId,this.dataset.signLight)">確認簽核</button>`
+              : `<span style="font-size:12px;color:var(--muted);padding:7px 0;">👁 僅可檢視 — 這筆請由 <b>${escHtml(r.unit)||''}</b> 自行簽核</span>`}
             </div>
           </div>
         </div>
@@ -1882,9 +1932,10 @@ function supCard(r){
 }
 
 async function loadSupervisor() {
+  if (!requireSessionCredential()) return;
   document.getElementById('supervisor-list').innerHTML='<div class="empty-state">載入中…</div>';
   try{
-    const res=await apiGet({action:'getAll'});
+    const res=await apiGet({action:'getAll', authUnit:currentUser.unitName, password:SESSION_PWD});
     const pending=filterByUser(res.data||[])
       .filter(r=>String(r.signed)!=='true')
       .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
@@ -2011,10 +2062,11 @@ async function loadHistory() {
     return;
   }
 
+  if (!requireSessionCredential()) return;
   document.getElementById('history-table').innerHTML='<div class="empty-state">載入中…</div>';
   try{
     // 把日期範圍傳給 GAS，讓後端先篩，減少資料傳輸量
-    const params={action:'getAll'};
+    const params={action:'getAll', authUnit:currentUser.unitName, password:SESSION_PWD};
     if(light)    params.light    = light;
     if(dateFrom) params.dateFrom = dateFrom;
     if(dateTo)   params.dateTo   = dateTo;
@@ -2047,13 +2099,13 @@ async function loadHistory() {
           <th>燈號</th><th>簽核</th>
         </tr></thead>
         <tbody>${data.map(r=>`<tr>
-          <td style="font-size:11px;white-space:nowrap;">${r.timestamp}</td>
-          <td style="font-weight:600;">${r.name||'—'}</td>
-          <td style="font-size:12px;">${r.unit||'—'}</td>
+          <td style="font-size:11px;white-space:nowrap;">${escHtml(r.timestamp)}</td>
+          <td style="font-weight:600;">${escHtml(r.name)||'—'}</td>
+          <td style="font-size:12px;">${escHtml(r.unit)||'—'}</td>
           <td>${r.sbp}/${r.dbp}</td><td>${r.hr}</td>
           <td>${r.spo2}%</td><td>${r.temp}℃</td>
           <td>${BADGE_HTML(r.light)}</td>
-          <td style="font-size:12px;">${String(r.signed)==='true'?'✓ '+r.signer:'—'}</td>
+          <td style="font-size:12px;">${String(r.signed)==='true'?'✓ '+escHtml(r.signer):'—'}</td>
         </tr>`).join('')}</tbody>
       </table></div>`;
   }catch(e){
@@ -2140,6 +2192,7 @@ function setAdminThisMonth() {
 }
 
 async function loadStats() {
+  if (!requireAdminCredential()) return;
   const errEl = document.getElementById('st-err');
   errEl.style.display = 'none';
   const dateFrom = document.getElementById('admin-date-from').value;
@@ -2150,7 +2203,7 @@ async function loadStats() {
     errEl.style.display = ''; return;
   }
 
-  const params = { action: 'getStats' };
+  const params = { action: 'getStats', adminPassword: ADMIN_PWD_ENTERED };
   const unit   = document.getElementById('admin-unit').value;
   const name   = document.getElementById('admin-name').value.trim();
   const light  = document.getElementById('admin-light').value;
