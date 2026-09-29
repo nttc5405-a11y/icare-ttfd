@@ -631,12 +631,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <div class="card-title">API 連線設定</div>
     <div class="setting-row">
       <div>
-        <div class="setting-label">GAS Web App URL</div>
-        <div class="setting-hint" style="word-break:break-all;">已預設：<code style="font-size:11px;">…AKfycbyL8WZ…/exec</code></div>
+        <div class="setting-label">GAS Web App URL / TOKEN</div>
+        <div class="setting-hint" style="word-break:break-all;">
+          兩者都不在這個網頁裡，設定於 Netlify 環境變數（Site settings → Environment variables 的
+          <code style="font-size:11px;">GAS_URL</code> / <code style="font-size:11px;">GAS_TOKEN</code>），
+          由 <code style="font-size:11px;">netlify/functions/gas-proxy.js</code> 這支伺服器端程式代為轉發。
+        </div>
       </div>
-    </div>
-    <div class="setting-row">
-      <div><div class="setting-label">TOKEN</div><div class="setting-hint">已預設於代碼內</div></div>
     </div>
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="testConnection()">測試連線</button>
@@ -812,7 +813,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       <li>修改第 8 行 <code>TOKEN</code> 為自訂密碼</li>
       <li>右上角「部署」→「新增部署作業」→「網路應用程式」</li>
       <li>執行身份：<strong>我</strong>；存取對象：<strong>所有人（含匿名）</strong></li>
-      <li>複製部署後的 URL，填入代碼 <code>GAS_URL</code> 變數</li>
+      <li>複製部署後的 URL，到 Netlify 後台 Site settings → Environment variables，
+        設定 <code>GAS_URL</code>（剛複製的網址）與 <code>GAS_TOKEN</code>（跟後端 TOKEN 同一組），
+        存檔後重新部署 Netlify。<strong>這兩個值不再寫在網頁原始碼裡</strong>，
+        瀏覽器改呼叫 Netlify Function（<code>netlify/functions/gas-proxy.js</code>）代為轉發。</li>
     </ol>
   </div>
 </div>
@@ -852,9 +856,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 
 <script>
 // ── 硬寫設定 ──────────────────────────────────────────────────
-const GAS_URL   = 'https://script.google.com/macros/s/AKfycbyL8WZ-BEdlliidtlayL_5nlp4wZQ_zudjbyDLhf7RiUkSlV72KOZFD6kzTH4OaP6LFXg/exec';
-// ⚠️ 部署前必改：跟後端 icare-gas-backend.js 的 CONFIG.TOKEN 填同一組你自己想的亂碼
-const GAS_TOKEN = 'ttfd_icare_system2026';
+// 瀏覽器不再直接呼叫 GAS、也不再帶 token——改打同網站底下的 Netlify Function，
+// 由它在伺服器端補上 token 再轉發給 GAS。真正的 GAS_URL／GAS_TOKEN 設在
+// Netlify 後台的環境變數裡（Site settings → Environment variables），
+// 這支程式：netlify/functions/gas-proxy.js
+const GAS_PROXY_URL = '/.netlify/functions/gas-proxy';
 
 // ── 單位結構（預設值 / 離線備援）────────────────────────────
 // 正式資料由 GAS accounts/units 分頁管理；載入失敗時使用此備援
@@ -1387,14 +1393,14 @@ function fetchWithTimeout(url, opts={}, ms=15000) {
   return fetch(url,{...opts,signal:ctrl.signal}).finally(()=>clearTimeout(tid));
 }
 async function _rawApiGet(params, ms) {
-  const q=new URLSearchParams({token:GAS_TOKEN,...params});
-  const r=await fetchWithTimeout(`${GAS_URL}?${q}`, {}, ms || 15000);
+  const q=new URLSearchParams(params);
+  const r=await fetchWithTimeout(`${GAS_PROXY_URL}?${q}`, {}, ms || 15000);
   const j=await r.json();
   if(j.status==='error') throw new Error(j.message);
   return j;
 }
 async function _rawApiPost(body, ms) {
-  const r=await fetchWithTimeout(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({token:GAS_TOKEN,...body})}, ms || 15000);
+  const r=await fetchWithTimeout(GAS_PROXY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}, ms || 15000);
   const j=await r.json();
   if(j.status==='error') throw new Error(j.message);
   return j;
@@ -1682,7 +1688,7 @@ async function initAllSheets() {
       msg.textContent = '✅ 所有分頁初始化完成，請至 Google Sheets 確認。';
     }
   } catch(e) {
-    msg.textContent = '❌ 失敗：' + e.message + '，請確認 GAS_URL 正確且已重新部署。';
+    msg.textContent = '❌ 失敗：' + e.message + '，請確認 Netlify 環境變數 GAS_URL/GAS_TOKEN 正確且 GAS 已重新部署。';
   }
 }
 async function loadCriteriaFromServer() {
