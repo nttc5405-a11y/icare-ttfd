@@ -1177,7 +1177,7 @@ async function buildAccountsTable() {
   if(!requireAdminCredential()) return;
   container.innerHTML='<div class="empty-state">載入帳號資料中…</div>';
   try {
-    const res = await apiGet({ action:'getAccounts', adminPassword: ADMIN_PWD_ENTERED });
+    const res = await apiPost({ action:'getAccounts', adminPassword: ADMIN_PWD_ENTERED }); // 密碼類參數一律走 POST，不進網址
     const accounts = res.accounts || [];
     // 依 brigade 分群
     const byBrigade = {};
@@ -1613,7 +1613,7 @@ async function loadAdminHistory(){
     if(dateFrom) params.dateFrom = dateFrom;
     if(dateTo)   params.dateTo   = dateTo;
     if(unit)     params.unit     = unit;
-    const res=await apiGet(params);
+    const res=await apiPost(params); // 密碼類參數一律走 POST，不進網址
     let data=res.data||[];
 
     // 前端補充篩選（姓名、簽核狀態 GAS 未支援）
@@ -1674,7 +1674,7 @@ async function initAllSheets() {
   msg.textContent = '⏳ 初始化中…'; msg.style.display = 'block';
   try {
     const actions = ['getUnits','getAccounts','getDispositions','getCriteria','ping'];
-    const results = await Promise.all(actions.map(action => apiGet({ action, adminPassword: ADMIN_PWD_ENTERED }).catch(e => ({ status:'error', action, e }))));
+    const results = await Promise.all(actions.map(action => apiPost({ action, adminPassword: ADMIN_PWD_ENTERED }).catch(e => ({ status:'error', action, e })))); // 密碼類參數一律走 POST
     const failed  = results.filter(r => r.status !== 'ok');
     if (failed.length) {
       msg.textContent = `⚠️ 部分失敗：${failed.map(r=>r.action||'unknown').join('、')}，請確認已重新部署 GAS。`;
@@ -1935,7 +1935,7 @@ async function loadSupervisor() {
   if (!requireSessionCredential()) return;
   document.getElementById('supervisor-list').innerHTML='<div class="empty-state">載入中…</div>';
   try{
-    const res=await apiGet({action:'getAll', authUnit:currentUser.unitName, password:SESSION_PWD});
+    const res=await apiPost({action:'getAll', authUnit:currentUser.unitName, password:SESSION_PWD}); // 密碼類參數一律走 POST，不進網址
     const pending=filterByUser(res.data||[])
       .filter(r=>String(r.signed)!=='true')
       .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
@@ -2071,7 +2071,7 @@ async function loadHistory() {
     if(dateFrom) params.dateFrom = dateFrom;
     if(dateTo)   params.dateTo   = dateTo;
     if(unit)     params.unit     = unit;
-    const res=await apiGet(params);
+    const res=await apiPost(params); // 密碼類參數一律走 POST，不進網址
     let data=filterByUser(res.data||[]);
 
     if(!data.length){
@@ -2203,7 +2203,7 @@ async function loadStats() {
     errEl.style.display = ''; return;
   }
 
-  const params = { action: 'getStats', adminPassword: ADMIN_PWD_ENTERED };
+  const params = { action: 'getStats', adminPassword: ADMIN_PWD_ENTERED }; // 密碼類參數一律走 POST，不進網址
   const unit   = document.getElementById('admin-unit').value;
   const name   = document.getElementById('admin-name').value.trim();
   const light  = document.getElementById('admin-light').value;
@@ -2219,7 +2219,7 @@ async function loadStats() {
   document.getElementById('st-kpi').innerHTML = '<div class="empty-state">統計中…</div>';
 
   try {
-    const st = await apiGet(params);
+    const st = await apiPost(params);
     statsData = st;
     if (!st.total) {
       document.getElementById('st-kpi').innerHTML = '<div class="empty-state">此條件查無填報紀錄</div>';
