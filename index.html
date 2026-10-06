@@ -356,6 +356,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
       <div class="field">
         <label>填報日期</label>
         <input id="f-shift" type="date">
+        <div id="shift-lock-hint" style="display:none;font-size:11px;color:var(--amber-text);margin-top:4px;">
+          🔒 目前僅開放當日填報，日期已鎖定為今天
+        </div>
       </div>
       <div class="field full">
         <label>單位</label>
@@ -885,6 +888,26 @@ let DISPOSITION_OPTIONS = {
     '複測仍紅燈：暫緩派遣，立即協助就醫','危險徵兆（胸痛/呼吸困難/意識改變）：立即通報，緊急送醫',
     '複測後彈性調整勤務：後勤支援工作','複測後彈性調整勤務：行政工作','複測後彈性調整勤務：待命'],
 };
+// ── 系統開關（試算表 settings 分頁）──────────────────────────
+// lockShiftDate：TRUE 時填報日期鎖定為今天，不能補填。真正把關的是後端，
+// 這裡只負責把日期欄鎖住、避免同仁填了才被拒絕。讀取失敗就當作沒鎖，後端仍會擋。
+let SETTINGS = { lockShiftDate: false };
+async function loadSettingsFromServer() {
+  try {
+    const res = await apiGet({ action: 'getSettings' });
+    SETTINGS.lockShiftDate = !!res.lockShiftDate;
+  } catch(e) { /* 沿用預設（未鎖定） */ }
+  applyShiftLock();
+}
+function applyShiftLock() {
+  const el = document.getElementById('f-shift');
+  const hint = document.getElementById('shift-lock-hint');
+  if (!el) return;
+  if (SETTINGS.lockShiftDate) { el.value = todayIso(); el.disabled = true; }
+  else { el.disabled = false; }
+  if (hint) hint.style.display = SETTINGS.lockShiftDate ? '' : 'none';
+}
+
 async function loadDispositionsFromServer() {
   try {
     const res = await apiGet({ action: 'getDispositions' });
@@ -1323,7 +1346,7 @@ function updateUnitDisplay(unit){ document.getElementById('unit-display').textCo
 
 // ── 初始化 ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('f-shift').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-shift').value=todayIso();
   const lastUnit=LS.get('myunit');
   if(lastUnit){
     for(const [brigade,subs] of Object.entries(UNITS)){
@@ -1334,6 +1357,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   updateSupervisorDatalist();
   loadDispositionsFromServer();
   loadCriteriaFromServer();
+  loadSettingsFromServer();
   checkApiStatus();
   loadUnitsFromServer(); // 從 GAS units/accounts 分頁動態載入單位結構，完成後再次渲染
   document.getElementById('today-badge').textContent=
@@ -1402,7 +1426,13 @@ async function _rawApiGet(params, ms) {
 async function _rawApiPost(body, ms) {
   const r=await fetchWithTimeout(GAS_PROXY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}, ms || 15000);
   const j=await r.json();
-  if(j.status==='error') throw new Error(j.message);
+  if(j.status==='error'){
+    const e=new Error(j.message);
+    // GAS 明確回了「不接受」（HTTP 200＋status:error）＝確定沒寫入；
+    // 轉發層自己的錯誤（5xx）則不確定有沒有送到，維持原本的查證流程
+    e.definitive = r.ok;
+    throw e;
+  }
   return j;
 }
 
@@ -1468,6 +1498,9 @@ async function submitWithVerify(vals) {
       const res = await submitOnce(vals);
       return { light: res.light, id: res.id, via: attempt === 1 ? 'ok' : 'resent' };
     } catch (err) {
+      // 伺服器明確拒絕（例如日期已鎖定、姓名空白）：確定沒寫入，直接把原因交給使用者，
+      // 不必走「查證有沒有存進去」那套流程
+      if (err && err.definitive) throw err;
       showMsg('submit-msg','⏳ 沒收到回應，正在確認是否已經存進去，請勿重按…');
       let found;
       try { found = await findMyRecord(vals); }
@@ -1641,7 +1674,7 @@ async function loadAdminHistory(){
       const le=r.light==='red'?'🔴':r.light==='amber'?'🟡':'🟢';
       const sg=String(r.signed)==='true'?`✅ ${escHtml(r.signer)||''}`:' — ';
       return `<tr>
-        <td style="white-space:nowrap;font-size:11px;">${escHtml(r.shift||tsDate(r.timestamp))}</td>
+        <td style="white-space:nowrap;font-size:11px;">${escHtml(r.shift||tsDate(r.timestamp))}${r.backfill?BACKFILL_TAG:''}</td>
         <td style="font-weight:600;">${escHtml(r.name)||'—'}</td>
         <td style="font-size:12px;">${escHtml(r.unit)||'—'}</td>
         <td>${le}</td>
@@ -1813,6 +1846,11 @@ async function doSubmit() {
   // 填報日期把關：頁面若在手機上開著過夜，日期欄會停在昨天而不自覺，
   // 造成紀錄被歸到前一天（統計上昨天多一筆、今天少一筆）
   const today = todayIso();
+  // 鎖定模式：日期欄本來就是灰的、固定今天；頁面開著過夜時也在這裡跟著更新成新的一天
+  if(SETTINGS.lockShiftDate){
+    vals.shift = today;
+    document.getElementById('f-shift').value = today;
+  }
   if(!vals.shift){
     toast('請選擇填報日期');
     document.getElementById('f-shift').focus();
@@ -1869,7 +1907,7 @@ async function doSubmit() {
 // keepMsg：送出成功後呼叫時要留著「已儲存」那列訊息，別把它一起藏掉
 function clearForm(keepMsg){
   ['f-name','f-sbp','f-dbp','f-hr','f-spo2','f-temp','f-note'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('f-shift').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-shift').value=todayIso();
   document.getElementById('f-fatigue').value=0; document.getElementById('fval').textContent='0';
   document.querySelectorAll('#sym-group input').forEach(c=>c.checked=false);
   document.getElementById('result-area').style.display='none';
@@ -1880,6 +1918,8 @@ function clearForm(keepMsg){
 
 // ── 燈號 badge ────────────────────────────────────────────────
 const BADGE_HTML=lvl=>`<span class="badge ${lvl}"><span class="dot"></span>${{green:'🟢 綠燈',amber:'🟡 黃燈',red:'🔴 紅燈'}[lvl]}</span>`;
+// 補填標記：勤務日期與系統實際收到的日期不同（由後端判斷，r.backfill）
+const BACKFILL_TAG='<span title="勤務日期與實際填報日期不同" style="display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:600;background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-bd);margin-left:6px;vertical-align:middle;white-space:nowrap;">補填</span>';
 
 // ══════════════════════════════════════════════════════════════
 // 主管審核
@@ -1910,7 +1950,7 @@ function supCard(r){
           <div class="sup-card-inner">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
               <div>
-                <div style="font-size:16px;font-weight:700;">${escHtml(r.name)||'（未填）'}</div>
+                <div style="font-size:16px;font-weight:700;">${escHtml(r.name)||'（未填）'}${r.backfill?BACKFILL_TAG:''}</div>
                 <div style="font-size:12px;color:var(--muted);">${escHtml(r.unit)||''} · ${escHtml(r.shift)||''} · ${escHtml(r.timestamp)||''}</div>
               </div>
               ${BADGE_HTML(r.light)}
@@ -2105,7 +2145,7 @@ async function loadHistory() {
           <th>燈號</th><th>簽核</th>
         </tr></thead>
         <tbody>${data.map(r=>`<tr>
-          <td style="font-size:11px;white-space:nowrap;">${escHtml(r.timestamp)}</td>
+          <td style="font-size:11px;white-space:nowrap;">${escHtml(r.timestamp)}${r.backfill?BACKFILL_TAG:''}</td>
           <td style="font-weight:600;">${escHtml(r.name)||'—'}</td>
           <td style="font-size:12px;">${escHtml(r.unit)||'—'}</td>
           <td>${r.sbp}/${r.dbp}</td><td>${r.hr}</td>
@@ -2277,6 +2317,11 @@ function renderStatsKpi(s) {
         <div class="db-stat-label">複測後轉綠率</div>
         <div class="db-stat-sub">複測 ${s.retested} 次，轉綠 ${s.retestToGreen} 次</div>
       </div>
+      <div class="db-stat" style="border-color:var(--amber-text);">
+        <div class="db-stat-val" style="color:var(--amber-text);">${s.backfill || 0}</div>
+        <div class="db-stat-label">補填筆數</div>
+        <div class="db-stat-sub">${pct(s.backfill || 0, s.total)}（勤務日期≠實際填報日）</div>
+      </div>
     </div>`;
 }
 
@@ -2410,7 +2455,7 @@ function renderPersonTable(s) {
     : '';
   el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table">' +
     '<thead><tr><th>姓名</th><th>單位</th><th>填報</th><th>🔴</th><th>🟡</th><th>🟢</th>' +
-    '<th>平均血壓</th><th>平均心率</th><th>最高收縮壓</th><th>最近填報日</th></tr></thead><tbody>' +
+    '<th>補填</th><th>平均血壓</th><th>平均心率</th><th>最高收縮壓</th><th>最近填報日</th></tr></thead><tbody>' +
     rows.map(p => `<tr>
       <td style="font-weight:600;">${escHtml(p.name)}</td>
       <td style="font-size:12px;">${escHtml(p.unit)}</td>
@@ -2418,6 +2463,7 @@ function renderPersonTable(s) {
       <td style="color:var(--red-text);">${p.red || '—'}</td>
       <td style="color:var(--amber-text);">${p.amber || '—'}</td>
       <td style="color:var(--green-text);">${p.green || '—'}</td>
+      <td style="color:var(--amber-text);">${p.backfill || '—'}</td>
       <td>${p.avgSbp != null ? p.avgSbp + '/' + (p.avgDbp != null ? p.avgDbp : '—') : '—'}</td>
       <td>${p.avgHr != null ? p.avgHr : '—'}</td>
       <td>${p.maxSbp != null ? p.maxSbp : '—'}</td>
@@ -2451,9 +2497,9 @@ function exportStatsCsv(kind) {
     s.byUnit.forEach(u => rows.push([u.unit, u.total, u.red, u.amber, u.green, u.abnormalRate]));
   } else if (kind === 'person') {
     name = 'iCare人員統計_' + tag + '.csv';
-    rows = [['姓名', '單位', '填報次數', '紅燈', '黃燈', '綠燈',
+    rows = [['姓名', '單位', '填報次數', '紅燈', '黃燈', '綠燈', '補填次數',
              '平均收縮壓', '平均舒張壓', '平均心率', '最高收縮壓', '最近填報日', '最近燈號']];
-    s.byPerson.forEach(p => rows.push([p.name, p.unit, p.total, p.red, p.amber, p.green,
+    s.byPerson.forEach(p => rows.push([p.name, p.unit, p.total, p.red, p.amber, p.green, p.backfill || 0,
       p.avgSbp, p.avgDbp, p.avgHr, p.maxSbp, p.lastDay, LIGHT_ZH[p.lastLight] || p.lastLight]));
   } else if (kind === 'watchlist') {
     name = 'iCare關注名單_' + tag + '.csv';
