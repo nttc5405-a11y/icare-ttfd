@@ -887,14 +887,17 @@ const GAS_PROXY_URL = '/.netlify/functions/gas-proxy';
 
 // ── 單位結構（預設值 / 離線備援）────────────────────────────
 // 正式資料由 GAS accounts/units 分頁管理；載入失敗時使用此備援
+// 只是「完全連不上也能填報」的最後備援；實際單位以試算表 units 分頁為準，
+// 之後試算表新增單位，這裡不更新也沒關係（網頁會記住最近一次成功載入的清單，見 UNITS_CACHE_KEY）
 const DEFAULT_UNITS = {
-  '台東大隊': ['台東大隊','台東','救護','特搜','大豐','知本','卑南','南王','豐田','綠島','蘭嶼'],
-  '關山大隊': ['關山大隊','鹿野','延平','關山','池上','海端'],
+  '台東大隊': ['台東大隊','台東','救護','特搜','大豐','知本','卑南','南王','豐田','搜救犬','綠島','蘭嶼'],
+  '關山大隊': ['關山大隊','鹿野','延平','關山','池上','海端','利稻'],
   '大武大隊': ['大武大隊','太麻里','金峰','大溪','大武','達仁'],
   '成功大隊': ['成功大隊','都蘭','東河','泰源','成功','長濱'],
-  '局本部':   ['科技救災','安檢','指揮中心'],
+  '局本部':   ['局本部','科技救災','安檢','指揮中心','人道救援'],
 };
 let UNITS = { ...DEFAULT_UNITS };  // 動態，會被 loadUnitsFromServer() 覆寫
+const UNITS_CACHE_KEY = 'units_cache'; // 最近一次從伺服器成功載入的單位清單，伺服器暫時很慢時沿用
 
 // ── 處置選項（預設值，頁面載入後由 GAS dispositions 分頁覆寫）──
 // 綠燈未填處置時自動帶入的值（需與後端 DEFAULT_GREEN_DISPOSITION 一致）
@@ -987,11 +990,20 @@ let ADMIN_PWD_ENTERED = ''; // 管理員密碼（給 getAccounts/saveAccount/設
 // 這裡原本的 getAdminPwd()/saveAdminPwd() 是純前端比對，已移除。
 
 // ── 從 GAS 載入單位結構 ───────────────────────────────────────
+// 單位清單是「選單位」的前提，後端偶爾會忽快忽慢（量到過 16~19 秒），
+// 所以：先用上次成功載入的清單頂著、這裡慢慢等（單次最多 40 秒、最多試 3 次），
+// 全部失敗也只是繼續用手上的清單，不會退回缺單位的舊預設值。
 async function loadUnitsFromServer() {
   try {
-    const res = await apiGet({ action: 'getUnits' });
+    let res = null, lastErr = null;
+    for (let i = 0; i < 3 && !res; i++) {
+      try { res = await RequestQueue.add(() => _rawApiGet({ action: 'getUnits' }, 40000)); }
+      catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 1500)); }
+    }
+    if (!res) throw lastErr || new Error('getUnits 無回應');
     if (res.status === 'ok' && res.units && Object.keys(res.units).length) {
       UNITS = res.units;
+      LS.set(UNITS_CACHE_KEY, JSON.stringify(res.units));
       // 重新渲染所有依賴 UNITS 的 UI
       renderBrigadeGrid();
       populateLoginUnitSelect();
@@ -1007,7 +1019,7 @@ async function loadUnitsFromServer() {
       }
     }
   } catch(e) {
-    console.warn('載入單位結構失敗，使用預設值：', e.message);
+    console.warn('載入單位結構失敗，沿用目前清單（上次成功載入的或內建備援）：', e.message);
   }
 }
 
@@ -1367,6 +1379,11 @@ function updateUnitDisplay(unit){ document.getElementById('unit-display').textCo
 // ── 初始化 ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('f-shift').value=todayIso();
+  // 先用「上次成功載入的單位清單」，沒有才用內建預設；伺服器回來後再更新
+  try {
+    const cached = JSON.parse(LS.get(UNITS_CACHE_KEY, '') || 'null');
+    if (cached && typeof cached === 'object' && Object.keys(cached).length) UNITS = cached;
+  } catch(e) { /* 快取壞掉就忽略 */ }
   const lastUnit=LS.get('myunit');
   if(lastUnit){
     for(const [brigade,subs] of Object.entries(UNITS)){
@@ -1375,11 +1392,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   renderBrigadeGrid();   // 先用備援值渲染，避免按鈕空白
   updateSupervisorDatalist();
+  loadUnitsFromServer(); // 從 GAS units/accounts 分頁動態載入單位結構，完成後再次渲染（最優先，排在最前面）
   loadDispositionsFromServer();
   loadCriteriaFromServer();
   loadSettingsFromServer();
   checkApiStatus();
-  loadUnitsFromServer(); // 從 GAS units/accounts 分頁動態載入單位結構，完成後再次渲染
   document.getElementById('today-badge').textContent=
     new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
   // 還原上次儲存的主題
@@ -1430,22 +1447,31 @@ const RequestQueue = {
   get pending() { return this._queue.length; }
 };
 
-// ── API（15 秒 timeout）────────────────────────────────────
-function fetchWithTimeout(url, opts={}, ms=15000) {
+// ── API（預設 30 秒 timeout）───────────────────────────────
+// 後端（Google Apps Script）實測偶爾會有 16~19 秒的速度尖峰，原本 15 秒太緊，
+// 一碰到尖峰整批請求就失敗重試。
+const API_TIMEOUT_MS = 30000;
+function fetchWithTimeout(url, opts={}, ms=API_TIMEOUT_MS) {
   const ctrl=new AbortController();
   const tid=setTimeout(()=>ctrl.abort(),ms);
   return fetch(url,{...opts,signal:ctrl.signal}).finally(()=>clearTimeout(tid));
 }
+// 回應不是 JSON（例如轉發層等太久時 Netlify 回的 HTML 錯誤頁）時，給看得懂的訊息，
+// 而且不標記 definitive，讓填報流程照舊走「查證有沒有存進去」。
+async function _readJson(r) {
+  try { return await r.json(); }
+  catch(e) { throw new Error('伺服器忙碌或回應逾時（HTTP ' + r.status + '），請稍後再試'); }
+}
 async function _rawApiGet(params, ms) {
   const q=new URLSearchParams(params);
-  const r=await fetchWithTimeout(`${GAS_PROXY_URL}?${q}`, {}, ms || 15000);
-  const j=await r.json();
+  const r=await fetchWithTimeout(`${GAS_PROXY_URL}?${q}`, {}, ms || API_TIMEOUT_MS);
+  const j=await _readJson(r);
   if(j.status==='error') throw new Error(j.message);
   return j;
 }
 async function _rawApiPost(body, ms) {
-  const r=await fetchWithTimeout(GAS_PROXY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}, ms || 15000);
-  const j=await r.json();
+  const r=await fetchWithTimeout(GAS_PROXY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}, ms || API_TIMEOUT_MS);
+  const j=await _readJson(r);
   if(j.status==='error'){
     const e=new Error(j.message);
     // GAS 明確回了「不接受」（HTTP 200＋status:error）＝確定沒寫入；
