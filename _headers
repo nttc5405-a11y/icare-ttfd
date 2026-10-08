@@ -5,3 +5,6 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Robots-Tag: noindex, nofollow
   Permissions-Policy: geolocation=(), camera=(), microphone=()
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json
