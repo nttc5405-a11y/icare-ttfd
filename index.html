@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>台東縣消防局iCare 生理健康管理系統</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#B3261E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="iCare">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 /* ── 基礎 ── */
@@ -42,10 +49,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   background:var(--bg);color:var(--text);font-size:15px;min-height:100vh;}
 
 /* ── 頂部 ── */
+.site-header{position:sticky;top:0;z-index:100;background:var(--surface);}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;
-  position:sticky;top:0;z-index:100;}
-.topbar-left{display:flex;align-items:center;gap:10px;}
+  padding:6px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;}
+.topbar-left{display:flex;align-items:center;gap:10px;min-width:0;}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.logo-mark{width:28px;height:28px;border-radius:7px;display:block;flex-shrink:0;}
 .logo{font-size:17px;font-weight:700;letter-spacing:-.5px;}
 .logo span{opacity:.4;font-weight:400;}
 .unit-tag{font-size:12px;background:var(--border);color:var(--muted);padding:3px 8px;border-radius:99px;}
@@ -72,6 +81,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 /* ── 表單 ── */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .field{display:flex;flex-direction:column;gap:5px;}
+/* 格線／彈性容器的子項預設 min-width:auto，輸入框的預設寬度會把欄位撐寬、整頁橫向溢出；補 0 讓它能縮 */
+.form-grid>*,.ind-grid>*,.hist-filter-grid>*{min-width:0;}
+.field input,.field select,.field textarea{min-width:0;}
 .field.full{grid-column:1/-1;}
 .field label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
 .field input,.field select,.field textarea{
@@ -283,6 +295,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   .form-grid,.ind-grid{grid-template-columns:1fr 1fr;}
   .main{padding:16px 12px;}
   .hist-filter-grid{grid-template-columns:1fr 1fr !important;}
+  /* 手機頁首瘦身：次要資訊收起來，讓頁首＋分頁列固定在上緣時不佔太多畫面 */
+  .topbar{padding:4px 12px;gap:6px;min-height:46px;}
+  .logo span,#today-badge,#quota-badge,#unit-display,#switch-btn,.hide-sm{display:none !important;}
+  .api-status.ok{display:none;}
+  .nav{padding:0 8px;}
 }
 
 /* ── 列印（統計報表存成 PDF）── */
@@ -313,20 +330,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 </head>
 <body>
 
-<!-- 頂部 -->
+<!-- 頂部＋導覽（整塊固定在畫面上緣，往下捲也看得到、隨時可切換分頁） -->
+<div class="site-header">
 <div class="topbar">
   <div class="topbar-left">
+    <img class="logo-mark" src="favicon.svg" alt="iCare" width="28" height="28">
     <div class="logo">iCare <span>消防健康管理</span></div>
     <div class="unit-tag" id="unit-display">未設定單位</div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+  <div class="topbar-right">
     <span id="today-badge"></span>
-    <button id="theme-toggle-btn" onclick="toggleTheme()">🌙 深色</button>
+    <button id="theme-toggle-btn" onclick="toggleTheme()">🌙<span class="hide-sm"> 深色</span></button>
     <span id="api-status-badge" class="api-status checking">● 連線中</span>
     <span id="quota-badge" style="font-size:11px;color:var(--muted);display:none;"></span>
     <button class="btn btn-ghost" id="login-btn" onclick="showLoginModal()" style="font-size:12px;padding:4px 10px;border-radius:99px;">🔐 登入</button>
     <span class="user-badge" id="user-badge"></span>
-    <button class="logout-btn" id="switch-btn" onclick="showLoginModal()" style="display:none;">🔄 切換帳號</button>
+    <button class="logout-btn" id="switch-btn" onclick="showLoginModal()" style="display:none;">🔄<span class="hide-sm"> 切換帳號</span></button>
     <button class="logout-btn" id="logout-btn" onclick="doLogout()" style="display:none;">登出</button>
   </div>
 </div>
@@ -339,6 +358,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <button class="nav-btn" onclick="checkAndGoTab('history')">📊 歷史 &amp; 趨勢<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoSettings()">⚙️ 設定<span class="lock-icon">🔒</span></button>
 </div>
+</div><!-- /site-header -->
 
 <div class="main">
 
@@ -1538,7 +1558,7 @@ function updateThemeBtn(){
   const btn=document.getElementById('theme-toggle-btn');
   const isDark=document.documentElement.getAttribute('data-theme')==='dark'||
     (!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches);
-  btn.textContent=isDark?'☀️ 淺色':'🌙 深色';
+  btn.innerHTML=isDark?'☀️<span class="hide-sm"> 淺色</span>':'🌙<span class="hide-sm"> 深色</span>';
 }
 function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme');

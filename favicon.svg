@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>iCare 消防人員生理健康管理</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F05A2B"/>
+      <stop offset="1" stop-color="#A61E1A"/>
+    </linearGradient>
+    <clipPath id="flame"><path d="M262 52 C292 118 378 168 378 274 C378 356 322 420 256 420 C190 420 134 362 134 292 C134 236 160 204 184 164 C192 192 208 214 222 214 C238 160 230 104 262 52 Z"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(256 256) scale(1.0800) translate(-256 -256)">
+    <path d="M262 52 C292 118 378 168 378 274 C378 356 322 420 256 420 C190 420 134 362 134 292 C134 236 160 204 184 164 C192 192 208 214 222 214 C238 160 230 104 262 52 Z" fill="#FFFFFF"/>
+    <polyline points="40,322 178,322 232,214 284,384 332,322 472,322" fill="none" stroke="#FFFFFF" stroke-width="50" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="40,322 178,322 232,214 284,384 332,322 472,322" fill="none" stroke="#C42B1E" stroke-width="50" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#flame)"/>
+  </g>
+</svg>
