@@ -1490,9 +1490,9 @@ async function _readJson(r) {
   markApiStatus(true);   // 拿到伺服器的資料回應（就算是「密碼錯誤」這類明確拒絕）＝連得上
   return j;
 }
-async function _rawApiGet(params, ms, headers) {
+async function _rawApiGet(params, ms) {
   const q=new URLSearchParams(params);
-  const r=await fetchWithTimeout(`${GAS_PROXY_URL}?${q}`, headers ? {headers} : {}, ms || API_TIMEOUT_MS);
+  const r=await fetchWithTimeout(`${GAS_PROXY_URL}?${q}`, {}, ms || API_TIMEOUT_MS);
   const j=await _readJson(r);
   if(j.status==='error') throw new Error(j.message);
   return j;
@@ -1534,55 +1534,52 @@ async function apiPost(body) {
 // 瀏覽器等不到回應不代表 Google 那邊沒寫進去，盲目重送就會產生
 // 一模一樣的重複紀錄，而且畫面還是顯示成功，沒有人會發現。
 // 實測 Apps Script 連「什麼都不做」的請求都可能跑到 50 秒以上，
-// 所以這裡改成：等久一點；真的超時就先「查有沒有寫進去」，
-// 確認沒有才重送。查不動的時候寧可停下來問人，也不要亂猜。
+// 所以這裡改成：等久一點；沒收到回應就「用同一組收據碼重送」。
+// 收據碼（nonce）是按下儲存時隨機產生的一組長碼，後端同一組碼只會存一筆：
+// 第一次其實已經存進去的，重送會直接回第一次的結果；沒存進去的，這次才寫入。
+// 所以重送不會產生重複紀錄，也不需要再去「查有沒有存進去」（那個匿名查詢已經移除）。
 const SUBMIT_TIMEOUT_MS = 40000;
-const VERIFY_TIMEOUT_MS = 30000;
+const SUBMIT_MAX_ATTEMPTS = 3;
 
 function submitOnce(vals) {
   return RequestQueue.add(() => _rawApiPost({action:'submit',data:vals}, SUBMIT_TIMEOUT_MS));
 }
 
-// 找出「今天、同單位、同姓名、五項數值完全相同」的紀錄，沒有就回 null。
-// 注意：查不到（回 null）跟查詢本身失敗（丟例外）必須分清楚，
-// 把查詢失敗當成「沒寫進去」就會誤判而重送，等於白改。
-async function findMyRecord(vals) {
-  const res = await RequestQueue.add(
-    // 帶專用標記：轉發層只放行帶這個標記的「查今天」匿名查詢，沒帶的一律擋掉
-    () => _rawApiGet({action:'getAll', today:'true', unit:vals.unit}, VERIFY_TIMEOUT_MS, {'X-ICare-Verify':'1'}));
-  const list = (res && res.data) || [];
-  const same = (a,b) => a!==''&&a!=null&&b!==''&&b!=null&&Number(a)===Number(b);
-  const hit = list.filter(r =>
-    String(r.name||'').trim() === vals.name &&
-    same(r.sbp,vals.sbp) && same(r.dbp,vals.dbp) && same(r.hr,vals.hr) &&
-    same(r.spo2,vals.spo2) && same(r.temp,vals.temp));
-  if(!hit.length) return null;
-  hit.sort((a,b)=>String(a.timestamp||'').localeCompare(String(b.timestamp||'')));
-  return hit[hit.length-1];
+// 隨機收據碼（32 個十六進位字元，128 位元）
+function newReceiptCode() {
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  return Array.from(a, b => b.toString(16).padStart(2,'0')).join('');
 }
+// 同一份內容沿用同一組收據碼：上一次沒確認成功（例如網路不穩）時，使用者再按一次儲存，
+// 內容沒改就還是同一組碼，後端認得、不會重複存；內容改了就換新碼，避免回舊資料給新內容。
+// 成功之後清掉，下一筆一定是新碼。
+let pendingReceipt = { key: '', code: '' };
+function receiptFor(vals) {
+  const key = JSON.stringify(vals);
+  if (pendingReceipt.key !== key) pendingReceipt = { key, code: newReceiptCode() };
+  return pendingReceipt.code;
+}
+function clearReceipt() { pendingReceipt = { key: '', code: '' }; }
 
 // 送出一筆填報，並保證不會因為等不到回應就重複寫入。
 // 回傳 {light, id, via}，via 說明這筆是怎麼來的：
 //   'ok'     一次就成功
-//   'found'  送出沒回應，但查證後確定已經寫進去了（沒有重送）
-//   'resent' 送出沒回應，查證確定沒寫進去，重送才成功
-// 無法確定有沒有寫進去時丟出 Error('UNSURE')。
+//   'found'  先前那次其實已經存進去了，後端認出收據碼、沒有重複寫入
+//   'resent' 前面沒收到回應，重送後成功寫入
+// 連續幾次都沒收到回應時丟出 Error('UNSURE')。
 async function submitWithVerify(vals) {
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= SUBMIT_MAX_ATTEMPTS; attempt++) {
     try {
       const res = await submitOnce(vals);
-      return { light: res.light, id: res.id, via: attempt === 1 ? 'ok' : 'resent' };
+      return { light: res.light, id: res.id,
+               via: res.duplicate ? 'found' : (attempt === 1 ? 'ok' : 'resent') };
     } catch (err) {
-      // 伺服器明確拒絕（例如日期已鎖定、姓名空白）：確定沒寫入，直接把原因交給使用者，
-      // 不必走「查證有沒有存進去」那套流程
+      // 伺服器明確拒絕（例如日期已鎖定、姓名空白）：確定沒寫入，直接把原因交給使用者
       if (err && err.definitive) throw err;
-      showMsg('submit-msg','⏳ 沒收到回應，正在確認是否已經存進去，請勿重按…');
-      let found;
-      try { found = await findMyRecord(vals); }
-      catch (e) { throw new Error('UNSURE'); }
-      if (found) return { light: found.light, id: found.id, via: 'found' };
-      if (attempt === 2) throw err;
-      showMsg('submit-msg','⏳ 已確認尚未存入，正在重新送出…');
+      if (attempt === SUBMIT_MAX_ATTEMPTS) throw new Error('UNSURE');
+      showMsg('submit-msg','⏳ 沒收到回應，正在重新送出（同一筆不會重複存入），請勿重按…');
+      await new Promise(r => setTimeout(r, 1500));
     }
   }
 }
@@ -1933,6 +1930,9 @@ async function doSubmit() {
     }
   }
 
+  // 收據碼：內容沒變就沿用上一次那組（逾時後再按儲存不會重複存），內容改了才換新的
+  vals.nonce = receiptFor(vals);
+
   submitLock = true;
   setSubmitBtn('⏳ 儲存中…', true);
   showMsg('submit-msg','⏳ 儲存中…');
@@ -1950,6 +1950,7 @@ async function doSubmit() {
     toast('填報成功！');
     // 送出成功就清空，只留單位。不清的話數值會一直留在畫面上，
     // 再按一次儲存就會送出一模一樣的第二筆（這是重複紀錄最主要的來源）
+    clearReceipt();   // 這筆已確認存入，下一筆要用新的收據碼
     clearForm(true);
     setSubmitBtn('✓ 已儲存', true);
     setTimeout(function(){ submitLock=false; setSubmitBtn('☁️ 儲存至雲端', false); }, SUBMIT_COOLDOWN_MS);
@@ -1958,8 +1959,9 @@ async function doSubmit() {
     if(e && e.message === 'UNSURE'){
       // 送出和查證都沒回應——兩邊都不確定。這時候自作主張重送會製造重複，
       // 自作主張說成功又可能漏掉紀錄，所以停下來讓人去問看得到紀錄的主管。
-      showMsg('submit-msg','⚠️ 網路不穩，無法確認這筆有沒有存進去。'
-        + '請先請值班主管在「主管審核」查看有沒有收到你這筆；確定沒有再按一次儲存，不要連按。');
+      showMsg('submit-msg','⚠️ 網路不穩，連續幾次都沒收到回應，無法確認這筆有沒有存進去。'
+        + '請稍等一下、內容不要改，再按一次儲存（同一筆不會重複存入）；'
+        + '也可以請值班主管在「主管審核」查看有沒有收到你這筆。');
       toast('無法確認是否已儲存');
     } else {
       showMsg('submit-msg','✗ 儲存失敗：'+e.message);
