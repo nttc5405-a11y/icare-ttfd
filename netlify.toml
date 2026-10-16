@@ -3,13 +3,3 @@
 
 [build.environment]
   NODE_VERSION = "18"
-
-# 匿名的 getAll（網址帶 ?action=getAll 的 GET）已無正常用途（填報改用收據碼），
-# 在 Netlify 這一層直接回 403，不進函式、不計函數運算點數。
-# 需憑證的 getAll 走 POST、網址沒有 action 參數，不受影響。
-[[redirects]]
-  from = "/.netlify/functions/gas-proxy"
-  query = {action = "getAll"}
-  to = "/blocked.json"
-  status = 403
-  force = true
