@@ -1490,9 +1490,9 @@ async function _readJson(r) {
   markApiStatus(true);   // 拿到伺服器的資料回應（就算是「密碼錯誤」這類明確拒絕）＝連得上
   return j;
 }
-async function _rawApiGet(params, ms) {
+async function _rawApiGet(params, ms, headers) {
   const q=new URLSearchParams(params);
-  const r=await fetchWithTimeout(`${GAS_PROXY_URL}?${q}`, {}, ms || API_TIMEOUT_MS);
+  const r=await fetchWithTimeout(`${GAS_PROXY_URL}?${q}`, headers ? {headers} : {}, ms || API_TIMEOUT_MS);
   const j=await _readJson(r);
   if(j.status==='error') throw new Error(j.message);
   return j;
@@ -1548,7 +1548,8 @@ function submitOnce(vals) {
 // 把查詢失敗當成「沒寫進去」就會誤判而重送，等於白改。
 async function findMyRecord(vals) {
   const res = await RequestQueue.add(
-    () => _rawApiGet({action:'getAll', today:'true', unit:vals.unit}, VERIFY_TIMEOUT_MS));
+    // 帶專用標記：轉發層只放行帶這個標記的「查今天」匿名查詢，沒帶的一律擋掉
+    () => _rawApiGet({action:'getAll', today:'true', unit:vals.unit}, VERIFY_TIMEOUT_MS, {'X-ICare-Verify':'1'}));
   const list = (res && res.data) || [];
   const same = (a,b) => a!==''&&a!=null&&b!==''&&b!=null&&Number(a)===Number(b);
   const hit = list.filter(r =>

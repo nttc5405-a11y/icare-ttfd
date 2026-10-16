@@ -52,6 +52,14 @@ exports.handler = async (event) => {
   const query = event.queryStringParameters || {};
   const action = event.httpMethod === 'GET' ? query.action : undefined;
 
+  // 匿名的 getAll（查某單位「今天」的紀錄）只給填報頁在「送出後沒收到回應」時查證用，
+  // 填報頁會帶 X-ICare-Verify 標記。沒帶標記的（例如外部程式反覆抓取）在這裡直接擋掉：
+  // 既不去問 GAS（省下等十幾秒的點數），也不把當日紀錄交出去。
+  // 需憑證的 getAll 走 POST，不受影響。
+  if (action === 'getAll' && !(event.headers && event.headers['x-icare-verify'])) {
+    return jsonResponse(403, { status: 'error', message: '此查詢需由填報頁發出' }, { 'Cache-Control': 'no-store' });
+  }
+
   // 配額查詢：GAS 後端早已停止累計執行時間，真實值恆為 0，
   // 網頁卻每 10 分鐘問一次，直接在這裡回答，省掉一次等 GAS 的時間。
   if (action === 'getQuota') {
