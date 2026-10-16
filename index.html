@@ -297,7 +297,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   .hist-filter-grid{grid-template-columns:1fr 1fr !important;}
   /* 手機頁首瘦身：次要資訊收起來，讓頁首＋分頁列固定在上緣時不佔太多畫面 */
   .topbar{padding:4px 12px;gap:6px;min-height:46px;}
-  .logo span,#today-badge,#quota-badge,#unit-display,#switch-btn,.hide-sm{display:none !important;}
+  .logo span,#today-badge,#unit-display,#switch-btn,.hide-sm{display:none !important;}
   .api-status.ok{display:none;}
   .nav{padding:0 8px;}
 }
@@ -342,7 +342,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <span id="today-badge"></span>
     <button id="theme-toggle-btn" onclick="toggleTheme()">🌙<span class="hide-sm"> 深色</span></button>
     <span id="api-status-badge" class="api-status checking">● 連線中</span>
-    <span id="quota-badge" style="font-size:11px;color:var(--muted);display:none;"></span>
     <button class="btn btn-ghost" id="login-btn" onclick="showLoginModal()" style="font-size:12px;padding:4px 10px;border-radius:99px;">🔐 登入</button>
     <span class="user-badge" id="user-badge"></span>
     <button class="logout-btn" id="switch-btn" onclick="showLoginModal()" style="display:none;">🔄<span class="hide-sm"> 切換帳號</span></button>
@@ -931,9 +930,31 @@ function applyShiftLock() {
   if (hint) hint.style.display = SETTINGS.lockShiftDate ? '' : 'none';
 }
 
+// ── 設定類資料的本機快取 ───────────────────────────────────────
+// 單位、處置選項、燈號標準這些很少變動，卻每次開頁面都各問一次伺服器；
+// 伺服器（Netlify 轉發層＋慢速的 GAS）是按「等待時間」計費的，所以改成：
+//   還新鮮（ttl 內）→ 直接用手機裡存的，完全不連線
+//   過期 → 連線更新；連線失敗 → 沿用舊的（再舊也比沒有好）
+const CFG_TTL_MS = 30 * 60 * 1000; // 設定類資料最多 30 分鐘才重新問一次
+function cfgCacheRead(action) {
+  try { return JSON.parse(LS.get('cfg_' + action, '') || 'null'); } catch(e) { return null; }
+}
+async function apiGetCached(action, ttlMs) {
+  const c = cfgCacheRead(action);
+  if (c && c.data && Date.now() - c.t < (ttlMs == null ? CFG_TTL_MS : ttlMs)) return c.data;
+  try {
+    const data = await apiGet({ action });
+    if (data && data.status === 'ok') LS.set('cfg_' + action, JSON.stringify({ t: Date.now(), data }));
+    return data;
+  } catch(e) {
+    if (c && c.data) return c.data;
+    throw e;
+  }
+}
+
 async function loadDispositionsFromServer() {
   try {
-    const res = await apiGet({ action: 'getDispositions' });
+    const res = await apiGetCached('getDispositions');
     if (res.status === 'ok' && res.dispositions) {
       DISPOSITION_OPTIONS = res.dispositions;
     }
@@ -995,6 +1016,8 @@ let ADMIN_PWD_ENTERED = ''; // 管理員密碼（給 getAccounts/saveAccount/設
 // 全部失敗也只是繼續用手上的清單，不會退回缺單位的舊預設值。
 async function loadUnitsFromServer() {
   try {
+    // 上次載入還新鮮就不再連線（畫面已經用快取的清單渲染過了）
+    if (Date.now() - Number(LS.get(UNITS_CACHE_KEY + '_t', '0')) < CFG_TTL_MS && localStorage.getItem('icare_' + UNITS_CACHE_KEY)) return;
     let res = null, lastErr = null;
     for (let i = 0; i < 3 && !res; i++) {
       try { res = await RequestQueue.add(() => _rawApiGet({ action: 'getUnits' }, 40000)); }
@@ -1004,6 +1027,7 @@ async function loadUnitsFromServer() {
     if (res.status === 'ok' && res.units && Object.keys(res.units).length) {
       UNITS = res.units;
       LS.set(UNITS_CACHE_KEY, JSON.stringify(res.units));
+      LS.set(UNITS_CACHE_KEY + '_t', String(Date.now()));
       // 重新渲染所有依賴 UNITS 的 UI
       renderBrigadeGrid();
       populateLoginUnitSelect();
@@ -1396,7 +1420,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   loadDispositionsFromServer();
   loadCriteriaFromServer();
   loadSettingsFromServer();
-  checkApiStatus();
+  // 不再另外打一次 ping 檢查連線：上面這些請求本身成功或失敗，就會更新右上角的連線狀態（見 markApiStatus）
   document.getElementById('today-badge').textContent=
     new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
   // 還原上次儲存的主題
@@ -1423,9 +1447,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     // 否則重新整理頁面後「主管姓名」的下拉建議會是空的
     updateSupervisorDatalist();
   }catch(e){ currentUser=null; } }
-  // 配額監控：改為 10 分鐘一次，避免背景請求干擾填報速度
-  checkQuota();
-  setInterval(checkQuota, 600000);
+  // 已移除「每 10 分鐘查一次 GAS 配額」的背景輪詢：後端早已不再累計執行時間，
+  // 回傳值恆為 0（畫面永遠顯示 6h0m），卻讓每個沒關的分頁一天白打 144 次、全部要付費。
 });
 
 // ── 限制 1：請求佇列（同時最多 3 個，其餘自動排隊）─────────
@@ -1454,13 +1477,18 @@ const API_TIMEOUT_MS = 30000;
 function fetchWithTimeout(url, opts={}, ms=API_TIMEOUT_MS) {
   const ctrl=new AbortController();
   const tid=setTimeout(()=>ctrl.abort(),ms);
-  return fetch(url,{...opts,signal:ctrl.signal}).finally(()=>clearTimeout(tid));
+  return fetch(url,{...opts,signal:ctrl.signal})
+    .catch(e=>{ markApiStatus(false); throw e; })   // 斷線／逾時：連線失敗
+    .finally(()=>clearTimeout(tid));
 }
 // 回應不是 JSON（例如轉發層等太久時 Netlify 回的 HTML 錯誤頁）時，給看得懂的訊息，
 // 而且不標記 definitive，讓填報流程照舊走「查證有沒有存進去」。
 async function _readJson(r) {
-  try { return await r.json(); }
-  catch(e) { throw new Error('伺服器忙碌或回應逾時（HTTP ' + r.status + '），請稍後再試'); }
+  let j;
+  try { j = await r.json(); }
+  catch(e) { markApiStatus(false); throw new Error('伺服器忙碌或回應逾時（HTTP ' + r.status + '），請稍後再試'); }
+  markApiStatus(true);   // 拿到伺服器的資料回應（就算是「密碼錯誤」這類明確拒絕）＝連得上
+  return j;
 }
 async function _rawApiGet(params, ms) {
   const q=new URLSearchParams(params);
@@ -1559,22 +1587,6 @@ async function submitWithVerify(vals) {
 }
 
 // ── 配額監控（走佇列，避免在填報/簽核高峰時插隊）──────────
-async function checkQuota() {
-  try {
-    const res=await RequestQueue.add(()=>_rawApiGet({action:'getQuota'}));
-    const used=res.usedSeconds||0;
-    const limit=6*3600;
-    const remaining=Math.max(0,limit-used);
-    const hh=Math.floor(remaining/3600);
-    const mm=Math.floor((remaining%3600)/60);
-    const pct=used/limit*100;
-    const badge=document.getElementById('quota-badge');
-    badge.textContent=`配額剩餘 ${hh}h${mm}m`;
-    badge.style.color=pct>80?'var(--red-text)':pct>50?'var(--amber-text)':'var(--muted)';
-    badge.style.display='';
-    if(pct>80) toast(`⚠️ GAS 配額警告：今日剩餘 ${hh}h${mm}m，請留意使用量`);
-  } catch(e) {}
-}
 function applyTheme(theme){
   document.documentElement.setAttribute('data-theme',theme);
   localStorage.setItem('theme',theme);
@@ -1592,13 +1604,19 @@ function toggleTheme(){
   if(!cur){applyTheme(sysDark?'light':'dark');}
   else{applyTheme(cur==='dark'?'light':'dark');}
 }
-async function checkApiStatus() {
+// 右上角連線狀態：由每一次真實的 API 請求順便更新（收到伺服器回應＝已連線；
+// 逾時／斷線／收到非資料的錯誤頁＝連線失敗），不再為了這個徽章額外打 ping。
+function markApiStatus(ok) {
   const el=document.getElementById('api-status-badge');
-  try{ await apiGet({action:'ping'}); el.textContent='● 已連線'; el.className='api-status ok'; }
-  catch(e){ el.textContent='● 連線失敗'; el.className='api-status err'; }
+  if(!el) return;
+  const cls = ok ? 'api-status ok' : 'api-status err';
+  if(el.className !== cls){
+    el.textContent = ok ? '● 已連線' : '● 連線失敗';
+    el.className = cls;
+  }
 }
 async function testConnection() {
-  try{ await apiGet({action:'ping'}); showMsg('settings-msg','✓ 連線成功！'); checkApiStatus(); }
+  try{ await apiGet({action:'ping'}); showMsg('settings-msg','✓ 連線成功！'); }
   catch(e){ showMsg('settings-msg','✗ 連線失敗：'+e.message); }
 }
 
@@ -1772,7 +1790,7 @@ async function initAllSheets() {
 }
 async function loadCriteriaFromServer() {
   try {
-    const res = await apiGet({ action:'getCriteria' });
+    const res = await apiGetCached('getCriteria');
     if (res.status==='ok' && res.criteria) CRITERIA = res.criteria;
   } catch(e) { /* 失敗時沿用預設值 */ }
 }
