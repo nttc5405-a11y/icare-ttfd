@@ -326,6 +326,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
 .sup-hint{font-size:12px;color:var(--hint);margin:0 0 10px;}
 /* 僅可檢視的卡片視覺上減弱，一眼分得出來 */
 .sup-details .card{background:var(--bg);border-style:dashed;box-shadow:none;}
+/* 今日未填報對照 */
+.uf-sum{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
+.uf-sum .uf-kpi{flex:1 1 90px;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;text-align:center;}
+.uf-sum .uf-kpi b{display:block;font-size:22px;line-height:1.2;}
+.uf-sum .uf-kpi span{font-size:12px;color:var(--muted);}
+.uf-sum .uf-kpi.bad b{color:var(--red-text);}
+.uf-sum .uf-kpi.ok b{color:var(--green-text);}
+.uf-warn{background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-bd);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;margin:0 0 12px;}
+.uf-brigade{font-size:14px;font-weight:600;margin:18px 0 6px;padding-bottom:4px;border-bottom:2px solid var(--border2);}
+.uf-grp{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin:0 0 8px;padding:10px 12px;}
+.uf-grp.has-miss{border-color:var(--red-bd);}
+.uf-gh{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;font-weight:600;}
+.uf-gh span{font-weight:500;font-size:12px;color:var(--muted);}
+.uf-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.uf-chip{display:inline-block;padding:3px 9px;border-radius:99px;font-size:13px;border:1px solid var(--border);background:var(--bg);}
+.uf-chip.miss{background:var(--red-bg);color:var(--red-text);border-color:var(--red-bd);font-weight:600;}
+.uf-chip small{opacity:.75;font-size:11px;margin-left:4px;}
+.uf-fdet{margin-top:8px;}
+.uf-fdet>summary{cursor:pointer;font-size:12px;color:var(--muted);}
+.uf-allok{margin-top:6px;font-size:13px;color:var(--green-text);}
 </style>
 </head>
 <body>
@@ -354,6 +374,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <button class="nav-btn active" onclick="goTab('submit')">📋 勤前填報</button>
   <button class="nav-btn" onclick="goTab('ref')">📖 判讀參考</button>
   <button class="nav-btn" onclick="checkAndGoTab('supervisor')">✅ 主管審核<span class="lock-icon">🔒</span></button>
+  <button class="nav-btn" onclick="checkAndGoTab('unfilled')">📋 今日未填報<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoTab('history')">📊 歷史 &amp; 趨勢<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoSettings()">⚙️ 設定<span class="lock-icon">🔒</span></button>
 </div>
@@ -530,6 +551,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
     <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadSupervisor()">↻ 重新整理</button>
   </div>
   <div id="supervisor-list"><div class="empty-state">載入中…</div></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB：今日未填報（對照「當日上班」名單）
+══════════════════════════════════════════ -->
+<div id="tab-unfilled" style="display:none;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+    <p id="uf-scope" style="font-size:14px;color:var(--muted);">對照「當日上班」名單，找出今天還沒填報的人</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadUnfilled()">↻ 重新整理</button>
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadUnfilled('admin')">🌐 全縣（管理員）</button>
+    </div>
+  </div>
+  <div id="uf-body"><div class="empty-state">載入中…</div></div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -1361,18 +1396,19 @@ async function saveAllPasswords() {
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── 鎖定分頁控制 ─────────────────────────────────────────────
-const LOCKED_TABS = ['supervisor','history','trend'];
+const LOCKED_TABS = ['supervisor','unfilled','history','trend'];
 function checkAndGoTab(id) {
   if(LOCKED_TABS.includes(id)&&!currentUser){ pendingTab=id; showLoginModal(); return; }
   goTab(id);
 }
 
 // ── 分頁切換 ──────────────────────────────────────────────────
-const TABS = ['submit','ref','supervisor','history','settings'];
+const TABS = ['submit','ref','supervisor','unfilled','history','settings'];
 function goTab(id) {
   TABS.forEach(t=>{ document.getElementById('tab-'+t).style.display = t===id?'':'none'; });
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{ b.classList.toggle('active',TABS[i]===id); });
   if(id==='supervisor') loadSupervisor();
+  if(id==='unfilled') loadUnfilled();
   if(id==='settings'){ buildAccountsTable(); populateAdminUnits(); setAdminDays(30); loadSupervisorsIntoSettings(); }
 }
 
@@ -2082,6 +2118,79 @@ async function loadSupervisor() {
   }
 }
 
+// ── 今日未填報：對照「當日上班」名單 ─────────────────────────────
+// 一般帳號：單位帳號看自己、大隊帳號看所屬分隊（由後端依帳號決定）；
+// 「全縣（管理員）」用管理員密碼，看全部。只在打開分頁或按「重新整理」時查一次，不會自動輪詢。
+let UF_MODE = 'unit';
+async function loadUnfilled(mode) {
+  if (mode) UF_MODE = mode;
+  const body = document.getElementById('uf-body');
+  let params;
+  if (UF_MODE === 'admin') {
+    if (!requireAdminCredential()) return;
+    params = { action:'getUnfilled', adminPassword: ADMIN_PWD_ENTERED };
+  } else {
+    if (!requireSessionCredential()) return;
+    params = { action:'getUnfilled', authUnit: currentUser.unitName, password: SESSION_PWD };
+  }
+  body.innerHTML = '<div class="empty-state">比對中…（約需數秒）</div>';
+  try {
+    const res = await apiPost(params);
+    renderUnfilled(res);
+  } catch (e) {
+    body.innerHTML = `<div class="empty-state">載入失敗：${escHtml(e.message)}</div>`;
+  }
+}
+function renderUnfilled(res) {
+  const body = document.getElementById('uf-body');
+  const scopeEl = document.getElementById('uf-scope');
+  if (scopeEl) scopeEl.textContent = res.scope === 'all'
+    ? '範圍：全縣（管理員）'
+    : '範圍：' + (currentUser ? currentUser.unitName : '') + (currentUser && currentUser.role === 'brigade' ? '（含所屬分隊）' : '');
+  const miss = res.total - res.filledCount;
+  let html = '';
+  if (res.rosterStale) {
+    html += `<div class="uf-warn">⚠️ ${res.rosterDate
+      ? '「當日上班」名單的同步日期是 <b>' + escHtml(res.rosterDate) + '</b>，不是今天（' + escHtml(res.today) + '），可能還沒更新，以下結果僅供參考。'
+      : '「當日上班」名單找不到同步日期，無法確認是不是今天的名單，以下結果僅供參考。'}</div>`;
+  }
+  if (!res.total) {
+    body.innerHTML = html + '<div class="empty-state">這個範圍在「當日上班」名單裡沒有人員</div>';
+    return;
+  }
+  html += `<div class="uf-sum">
+    <div class="uf-kpi"><b>${res.total}</b><span>應填（上班）</span></div>
+    <div class="uf-kpi ok"><b>${res.filledCount}</b><span>已填</span></div>
+    <div class="uf-kpi ${miss ? 'bad' : 'ok'}"><b>${miss}</b><span>未填</span></div>
+  </div>`;
+  let lastBrigade = null;
+  res.groups.forEach(g => {
+    if (g.brigade !== lastBrigade) { lastBrigade = g.brigade; html += `<div class="uf-brigade">${escHtml(g.brigade || '（未分大隊）')}</div>`; }
+    const gm = g.total - g.filledCount;
+    html += `<div class="uf-grp${gm ? ' has-miss' : ''}">
+      <div class="uf-gh">${escHtml(g.unit)}<span>未填 ${gm}／應填 ${g.total}</span></div>`;
+    if (gm) {
+      html += '<div class="uf-chips">' + g.unfilled.map(p =>
+        `<span class="uf-chip miss">${escHtml(p.name)}${p.maybe ? '<small>可能是「' + escHtml(p.maybe) + '」打錯字</small>' : ''}</span>`).join('') + '</div>';
+    } else {
+      html += '<div class="uf-allok">✓ 全部已填報</div>';
+    }
+    if (g.filled.length) {
+      html += `<details class="uf-fdet"><summary>已填 ${g.filled.length} 人</summary><div class="uf-chips">` +
+        g.filled.map(p => `<span class="uf-chip">${escHtml(p.name)}<small>${escHtml(p.time || '')}${p.note ? ' ' + escHtml(p.note) : ''}</small></span>`).join('') +
+        '</div></details>';
+    }
+    html += '</div>';
+  });
+  if (res.extra && res.extra.length) {
+    html += `<details class="sup-details"><summary>今天有填報、但不在上班名單的人<span>${res.extra.length} 人</span></summary>
+      <p class="sup-hint">可能是名單還沒同步、臨時調動，或姓名和名單寫法不同（名單上顯示「未填」的人旁邊若有提示，通常就是這個原因）。</p>
+      <div class="uf-chips">${res.extra.map(p => `<span class="uf-chip">${escHtml(p.name)}<small>${escHtml(p.unit)} ${escHtml(p.time || '')}${p.elsewhere ? '　名單屬其他單位' : ''}</small></span>`).join('')}</div>
+    </details>`;
+  }
+  body.innerHTML = html;
+}
+
 async function doSign(id, light) {
   if(!canSignId(id)){ toast('大隊帳號不能代替所屬分隊簽核'); return; }
   const signer=document.getElementById('signer-'+id).value.trim();
@@ -2680,6 +2789,14 @@ function toast(msg){
   el.textContent=msg; el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),2800);
 }
+
+// 專用連結：https://ttfd-icare.netlify.app/#unfilled 直接進「今日未填報」；
+// 還沒登入（或重新整理後密碼已不在記憶體）就先跳出登入視窗，登入後自動切過去。
+window.addEventListener('load',()=>{
+  if(location.hash!=='#unfilled') return;
+  if(currentUser && SESSION_PWD){ goTab('unfilled'); }
+  else { pendingTab='unfilled'; showLoginModal(); }
+});
 </script>
 </body>
 </html>
