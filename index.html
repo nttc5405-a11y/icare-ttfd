@@ -560,8 +560,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
     <p id="uf-scope" style="font-size:14px;color:var(--muted);">對照「當日上班」名單，找出今天還沒填報的人</p>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadUnfilled()">↻ 重新整理</button>
-      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadUnfilled('admin')">🌐 全縣（管理員）</button>
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadUnfilled(null,true)">↻ 重新整理</button>
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="loadUnfilled('admin',true)">🌐 全縣（管理員）</button>
     </div>
   </div>
   <div id="uf-body"><div class="empty-state">載入中…</div></div>
@@ -2122,23 +2122,33 @@ async function loadSupervisor() {
 // 一般帳號：單位帳號看自己、大隊帳號看所屬分隊（由後端依帳號決定）；
 // 「全縣（管理員）」用管理員密碼，看全部。只在打開分頁或按「重新整理」時查一次，不會自動輪詢。
 let UF_MODE = 'unit';
-async function loadUnfilled(mode) {
+let UF_SEQ = 0;   // 防止「上一次還沒回來、又按了一次」時，舊結果蓋掉新結果
+// loadUnfilled(mode, refresh)：mode＝'admin' 切全縣、'unit' 切回自己；refresh＝true 時跳過後端 60 秒快取
+async function loadUnfilled(mode, refresh) {
   if (mode) UF_MODE = mode;
   const body = document.getElementById('uf-body');
   let params;
   if (UF_MODE === 'admin') {
-    if (!requireAdminCredential()) return;
+    if (!requireAdminCredential()) { body.innerHTML = '<div class="empty-state">需要管理員密碼才能看全縣</div>'; return; }
     params = { action:'getUnfilled', adminPassword: ADMIN_PWD_ENTERED };
   } else {
-    if (!requireSessionCredential()) return;
+    if (!requireSessionCredential()) { body.innerHTML = '<div class="empty-state">請先登入</div>'; return; }
     params = { action:'getUnfilled', authUnit: currentUser.unitName, password: SESSION_PWD };
   }
-  body.innerHTML = '<div class="empty-state">比對中…（約需數秒）</div>';
+  if (refresh) params.refresh = true;
+  const seq = ++UF_SEQ;
+  body.innerHTML = '<div class="empty-state">比對中…（讀取試算表，通常 3～10 秒）</div>';
+  // 超過 8 秒還沒回來，主動說明還在跑（後端回應慢是常態，不然會以為當掉）
+  const slow = setTimeout(() => {
+    if (seq === UF_SEQ) body.innerHTML = '<div class="empty-state">還在讀取試算表…後端這次比較慢，請不要關閉頁面（最久約 30 秒）</div>';
+  }, 8000);
   try {
     const res = await apiPost(params);
-    renderUnfilled(res);
+    if (seq === UF_SEQ) renderUnfilled(res);
   } catch (e) {
-    body.innerHTML = `<div class="empty-state">載入失敗：${escHtml(e.message)}</div>`;
+    if (seq === UF_SEQ) body.innerHTML = `<div class="empty-state">載入失敗：${escHtml(e.message)}<br><br><button class="btn btn-ghost" onclick="loadUnfilled(null,true)">再試一次</button></div>`;
+  } finally {
+    clearTimeout(slow);
   }
 }
 function renderUnfilled(res) {
@@ -2149,6 +2159,7 @@ function renderUnfilled(res) {
     : '範圍：' + (currentUser ? currentUser.unitName : '') + (currentUser && currentUser.role === 'brigade' ? '（含所屬分隊）' : '');
   const miss = res.total - res.filledCount;
   let html = '';
+  if (res.generatedAt) html += `<p class="sup-hint" style="margin:0 0 8px;">資料時間 ${escHtml(res.generatedAt)}${res.cached ? '（背景約每 5 分鐘自動更新一次，要最新請按「重新整理」）' : '（剛剛現場讀取）'}</p>`;
   if (res.rosterStale) {
     html += `<div class="uf-warn">⚠️ ${res.rosterDate
       ? '「當日上班」名單的同步日期是 <b>' + escHtml(res.rosterDate) + '</b>，不是今天（' + escHtml(res.today) + '），可能還沒更新，以下結果僅供參考。'
