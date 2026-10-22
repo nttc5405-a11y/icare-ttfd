@@ -2080,11 +2080,20 @@ function supCard(r){
       </div>`;
 }
 
+let SUP_SEQ = 0;   // 防止「上一次還沒回來、又按了一次重新整理」時，舊回應蓋掉新結果
 async function loadSupervisor() {
   if (!requireSessionCredential()) return;
-  document.getElementById('supervisor-list').innerHTML='<div class="empty-state">載入中…</div>';
+  const listEl = document.getElementById('supervisor-list');
+  const seq = ++SUP_SEQ;
+  listEl.innerHTML='<div class="empty-state">載入中…</div>';
+  // 超過 8 秒還沒回來，主動說明還在跑（後端回應慢是常態，不說明會以為當掉而一直重按）
+  const slow = setTimeout(() => {
+    if (seq === SUP_SEQ) listEl.innerHTML='<div class="empty-state">還在讀取試算表…後端這次比較慢，請不要關閉頁面，也不必重複按（最久約 30 秒）</div>';
+  }, 8000);
   try{
-    const res=await apiPost({action:'getAll', authUnit:currentUser.unitName, password:SESSION_PWD}); // 密碼類參數一律走 POST，不進網址
+    // pending:true＝只要「還沒簽核」的紀錄，後端先篩，不必把整份歷史紀錄傳來傳去
+    const res=await apiPost({action:'getAll', pending:true, authUnit:currentUser.unitName, password:SESSION_PWD}); // 密碼類參數一律走 POST，不進網址
+    if (seq !== SUP_SEQ) return;
     const pending=filterByUser(res.data||[])
       .filter(r=>String(r.signed)!=='true')
       .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
@@ -2114,7 +2123,9 @@ async function loadSupervisor() {
     }
     document.getElementById('supervisor-list').innerHTML=html;
   }catch(e){
-    document.getElementById('supervisor-list').innerHTML=`<div class="empty-state">載入失敗：${e.message}</div>`;
+    if (seq === SUP_SEQ) listEl.innerHTML=`<div class="empty-state">載入失敗：${escHtml(e.message)}<br><br><button class="btn btn-ghost" onclick="loadSupervisor()">再試一次</button></div>`;
+  }finally{
+    clearTimeout(slow);
   }
 }
 
