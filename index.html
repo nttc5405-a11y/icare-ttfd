@@ -1407,7 +1407,7 @@ const TABS = ['submit','ref','supervisor','unfilled','history','settings'];
 function goTab(id) {
   TABS.forEach(t=>{ document.getElementById('tab-'+t).style.display = t===id?'':'none'; });
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{ b.classList.toggle('active',TABS[i]===id); });
-  if(id==='supervisor') loadSupervisor();
+  if(id==='supervisor') loadSupervisor(false);   // 每次進入主管審核都從「近 7 日」開始
   if(id==='unfilled') loadUnfilled();
   if(id==='settings'){ buildAccountsTable(); populateAdminUnits(); setAdminDays(30); loadSupervisorsIntoSettings(); }
 }
@@ -2081,8 +2081,14 @@ function supCard(r){
 }
 
 let SUP_SEQ = 0;   // 防止「上一次還沒回來、又按了一次重新整理」時，舊回應蓋掉新結果
-async function loadSupervisor() {
+// 預設只載入「近 7 日」的待簽核（後端不必讀整張表，快很多）；更早還沒簽核的只顯示筆數，
+// 使用者按「載入全部」才會連 7 日前的一起載入，所以不會有紀錄被悄悄藏起來。
+const SUP_DAYS = 7;
+let SUP_ALL = false;
+// loadSupervisor(true)＝載入全部待簽核；loadSupervisor(false)＝回到近 7 日；不帶參數＝維持目前的模式（例如重新整理）
+async function loadSupervisor(all) {
   if (!requireSessionCredential()) return;
+  if (all === true) SUP_ALL = true; else if (all === false) SUP_ALL = false;
   const listEl = document.getElementById('supervisor-list');
   const seq = ++SUP_SEQ;
   listEl.innerHTML='<div class="empty-state">載入中…</div>';
@@ -2092,13 +2098,25 @@ async function loadSupervisor() {
   }, 8000);
   try{
     // pending:true＝只要「還沒簽核」的紀錄，後端先篩，不必把整份歷史紀錄傳來傳去
-    const res=await apiPost({action:'getAll', pending:true, authUnit:currentUser.unitName, password:SESSION_PWD}); // 密碼類參數一律走 POST，不進網址
+    // days＝只看近幾日（後端只讀那一段）；載入全部時不帶 days。舊版後端不認得 days，會回傳全部，照樣能用
+    const q={action:'getAll', pending:true, authUnit:currentUser.unitName, password:SESSION_PWD};
+    if(!SUP_ALL) q.days=SUP_DAYS;
+    const res=await apiPost(q); // 密碼類參數一律走 POST，不進網址
     if (seq !== SUP_SEQ) return;
+    // 提示列：近 7 日模式下若更早還有未簽核就說明，並給「載入全部」；全部模式下給「只看近 7 日」
+    let banner='';
+    if(!SUP_ALL && res.olderPending>0){
+      banner=`<div class="uf-warn">另有 <b>${+res.olderPending}</b> 筆 ${SUP_DAYS} 日前還沒簽核的紀錄沒有顯示。
+        <button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;margin-left:6px;" onclick="loadSupervisor(true)">載入全部</button></div>`;
+    } else if(SUP_ALL && res.windowDays===undefined){
+      banner=`<div class="sup-hint" style="margin:0 0 8px;">目前顯示全部待簽核紀錄。
+        <button class="btn btn-ghost" style="padding:2px 9px;font-size:12px;margin-left:6px;" onclick="loadSupervisor(false)">只看近 ${SUP_DAYS} 日</button></div>`;
+    }
     const pending=filterByUser(res.data||[])
       .filter(r=>String(r.signed)!=='true')
       .sort((a,b)=>({red:0,amber:1,green:2}[a.light])-({red:0,amber:1,green:2}[b.light]));
     if(!pending.length){
-      document.getElementById('supervisor-list').innerHTML='<div class="empty-state">目前無待簽核紀錄 🎉</div>'; return;
+      document.getElementById('supervisor-list').innerHTML=banner+'<div class="empty-state">'+(SUP_ALL?'目前無待簽核紀錄 🎉':'近 '+SUP_DAYS+' 日沒有待簽核紀錄 🎉')+'</div>'; return;
     }
     pending.forEach(r=>{ PENDING_UNIT[r.id]=r.unit||''; });
     // 分成「要我簽的」和「只能看的」兩區，避免混在一起難以辨識
@@ -2121,7 +2139,7 @@ async function loadSupervisor() {
         ${otherList.map(supCard).join('')}
       </details>`;
     }
-    document.getElementById('supervisor-list').innerHTML=html;
+    document.getElementById('supervisor-list').innerHTML=banner+html;
   }catch(e){
     if (seq === SUP_SEQ) listEl.innerHTML=`<div class="empty-state">載入失敗：${escHtml(e.message)}<br><br><button class="btn btn-ghost" onclick="loadSupervisor()">再試一次</button></div>`;
   }finally{
