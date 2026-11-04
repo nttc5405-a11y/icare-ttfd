@@ -377,6 +377,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <button class="nav-btn" onclick="checkAndGoTab('unfilled')">📋 今日未填報<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoTab('history')">📊 歷史 &amp; 趨勢<span class="lock-icon">🔒</span></button>
   <button class="nav-btn" onclick="checkAndGoSettings()">⚙️ 設定<span class="lock-icon">🔒</span></button>
+  <button class="nav-btn" onclick="goTab('feedback')">💬 問題反映</button>
 </div>
 </div><!-- /site-header -->
 
@@ -631,6 +632,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,'Micros
   <!-- 紀錄表格 -->
   <div class="card">
     <div id="history-table"><div class="empty-state">請選擇篩選條件後點擊「搜尋」</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     問題反映
+══════════════════════════════════════════ -->
+<div id="tab-feedback" style="display:none;">
+  <div class="card">
+    <div class="card-title">問題反映與建議</div>
+    <p style="font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:16px;">
+      使用 iCare 時遇到問題，或覺得哪裡可以調整、優化，歡迎提出。單位與姓名可以不填；
+      送出後會進到處理清單，您可以隨時回來查看處理進度。
+    </p>
+    <div class="btn-row" style="margin-top:0;">
+      <button type="button" class="btn btn-primary" onclick="openFeedback('form')">✏️ 提出問題或建議</button>
+      <button type="button" class="btn btn-ghost" onclick="openFeedback('sheet')">📑 查看處理進度</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.6;">
+      請不要在表單內填寫個人健康數值或身分證字號。處理狀態分為：已收到、處理中、已完成、暫不處理（附說明）。
+    </p>
   </div>
 </div>
 
@@ -1403,7 +1424,15 @@ function checkAndGoTab(id) {
 }
 
 // ── 分頁切換 ──────────────────────────────────────────────────
-const TABS = ['submit','ref','supervisor','unfilled','history','settings'];
+const TABS = ['submit','ref','supervisor','unfilled','history','settings','feedback'];
+// 問題反映：Google 表單（提出建議）與唯讀進度表（查看處理狀態），兩個都是公開連結，不含任何密碼
+const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfFQfjfAiZQXHdNbRjmhVrhyho4XeP3VFJjpduUvDOm-aeFAQ/viewform';
+const FEEDBACK_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1MzeBE1Q6gkC_VnPT0Nu8QIf1TOBKvVOqG_G98tIEvIM/edit?gid=0#gid=0';
+function openFeedback(kind){
+  const url = kind==='form' ? FEEDBACK_FORM_URL : FEEDBACK_SHEET_URL;
+  if(!/^https:\/\/(docs\.google\.com|forms\.gle)\//.test(url)){ alert('這個連結還沒有開放，請稍後再試。'); return; }
+  window.open(url,'_blank','noopener');
+}
 function goTab(id) {
   TABS.forEach(t=>{ document.getElementById('tab-'+t).style.display = t===id?'':'none'; });
   document.querySelectorAll('.nav-btn').forEach((b,i)=>{ b.classList.toggle('active',TABS[i]===id); });
